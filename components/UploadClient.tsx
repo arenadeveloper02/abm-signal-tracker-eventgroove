@@ -2,10 +2,11 @@
 
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { extractSavedRowId } from '@/lib/utils'
 
 interface UploadClientProps {
   email: string
-  onSaved: () => void
+  onSaved: (rowId: string) => void
   heading?: string
   description?: string
 }
@@ -73,6 +74,7 @@ export default function UploadClient({
   }
 
   const removeRow = (idx: number) => {
+    if (saving) return
     setRows((prev) => prev.filter((_, i) => i !== idx))
   }
 
@@ -87,8 +89,9 @@ export default function UploadClient({
         body: JSON.stringify({ email, companyDetails: rows }),
       })
       if (!res.ok) throw new Error('Failed to save the company list')
-      await res.json()
-      onSaved()
+      const json: unknown = await res.json()
+      const rowId = extractSavedRowId(json)
+      onSaved(rowId)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save the company list')
     } finally {
@@ -130,7 +133,7 @@ export default function UploadClient({
           <button
             type="button"
             className="ds-btn ds-btn-primary mt-4"
-            disabled={parsing}
+            disabled={parsing || saving}
             onClick={(e) => {
               e.stopPropagation()
               if (inputRef.current) inputRef.current.click()
@@ -164,7 +167,7 @@ export default function UploadClient({
                 {rows.length} companies ready to import{fileName ? ` · ${fileName}` : ''}
               </p>
               <button type="button" className="ds-btn ds-btn-primary" onClick={() => void handleSave()} disabled={saving}>
-                {saving ? 'Saving...' : 'Analyze Companies'}
+                {saving ? 'Analyzing...' : 'Analyze Companies'}
               </button>
             </div>
             <div className="ds-scroll mt-3 max-h-96 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--ds-border-default)' }}>
@@ -182,7 +185,7 @@ export default function UploadClient({
                       <td>{idx + 1}</td>
                       <td className="break-all">{row}</td>
                       <td className="text-right">
-                        <button type="button" className="ds-btn ds-btn-secondary ds-btn-sm" onClick={() => removeRow(idx)}>
+                        <button type="button" className="ds-btn ds-btn-secondary ds-btn-sm" onClick={() => removeRow(idx)} disabled={saving}>
                           Remove
                         </button>
                       </td>

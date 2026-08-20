@@ -51,34 +51,37 @@ export default function DashboardClient() {
     return res.json()
   }, [email])
 
-  const runAnalysis = useCallback(async (): Promise<void> => {
-    if (analysisRef.current) return
-    analysisRef.current = true
-    setAnalyzing(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      if (!res.ok) throw new Error('Analysis request failed')
-      await res.json()
-      const listResp = await fetchList()
-      const content = extractDashboardContent(listResp)
-      if (!content) throw new Error('No dashboard output was returned after analysis')
-      const parsed = safeParseDashboard(content)
-      if (!parsed) throw new Error('The dashboard output could not be parsed')
-      setData(parsed)
-      setLastUpdated(parsed.generatedAt || new Date().toISOString())
-      setPhase('dashboard')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Analysis failed')
-    } finally {
-      setAnalyzing(false)
-      analysisRef.current = false
-    }
-  }, [email, fetchList])
+  const runAnalysis = useCallback(
+    async (rowId?: string): Promise<void> => {
+      if (analysisRef.current) return
+      analysisRef.current = true
+      setAnalyzing(true)
+      setError(null)
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, id: rowId ?? '' }),
+        })
+        if (!res.ok) throw new Error('Analysis request failed')
+        await res.json()
+        const listResp = await fetchList()
+        const content = extractDashboardContent(listResp)
+        if (!content) throw new Error('No dashboard output was returned after analysis')
+        const parsed = safeParseDashboard(content)
+        if (!parsed) throw new Error('The dashboard output could not be parsed')
+        setData(parsed)
+        setLastUpdated(parsed.generatedAt || new Date().toISOString())
+        setPhase('dashboard')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Analysis failed')
+      } finally {
+        setAnalyzing(false)
+        analysisRef.current = false
+      }
+    },
+    [email, fetchList]
+  )
 
   const boot = useCallback(async (): Promise<void> => {
     setError(null)
@@ -119,11 +122,14 @@ export default function DashboardClient() {
     void runAnalysis()
   }, [email, runAnalysis])
 
-  const handleUploadSaved = useCallback(() => {
-    void recordActivityEvent(email, 'companies_uploaded')
-    setPhase('dashboard')
-    void runAnalysis()
-  }, [email, runAnalysis])
+  const handleUploadSaved = useCallback(
+    (rowId: string) => {
+      void recordActivityEvent(email, 'companies_uploaded', rowId || undefined)
+      setPhase('dashboard')
+      void runAnalysis(rowId)
+    },
+    [email, runAnalysis]
+  )
 
   const handleSelectCompany = useCallback((name: string) => {
     setActiveTab('companies')
@@ -182,6 +188,7 @@ export default function DashboardClient() {
         onSearchChange={setSearchQuery}
         companies={data ? data.companies : []}
         onSelectCompany={handleSelectCompany}
+        onImportSaved={handleUploadSaved}
       />
 
       {phase === 'boot' ? (
@@ -298,17 +305,9 @@ export default function DashboardClient() {
             </div>
           ) : null}
 
-          {analyzing && !data ? (
-            <div className="ds-card flex min-h-[40vh] flex-col items-center justify-center gap-3 p-10 text-center">
-              <span className="ds-spinner" />
-              <p className="text-base font-semibold">Analyzing company signals...</p>
-              <p className="text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>This can take a few minutes. Please keep this page open.</p>
-            </div>
-          ) : null}
-
           {data ? (
             <>
-              <div className="mb-4 flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--ds-border-default)' }}>
+              <div className="mb-4 flex flex-wrap border-b" style={{ borderColor: 'var(--ds-border-default)' }}>
                 {TABS.map((tab) => (
                   <button
                     key={tab.key}
@@ -320,11 +319,13 @@ export default function DashboardClient() {
                   </button>
                 ))}
               </div>
-              {activeTab === 'overview' ? <OverviewTab data={data} filters={filters} searchQuery={searchQuery} /> : null}
-              {activeTab === 'trends' ? (
-                <TrendsTab data={data} onApplyTypeFilter={handleApplyTypeFilter} onSelectCompany={handleSelectCompany} />
+              {activeTab === 'overview' ? (
+                <OverviewTab data={data} onSelectCompany={handleSelectCompany} onApplyTypeFilter={handleApplyTypeFilter} />
               ) : null}
-              {activeTab === 'signals' ? <SignalsTab data={data} filters={filters} searchQuery={searchQuery} /> : null}
+              {activeTab === 'trends' ? <TrendsTab data={data} onApplyTypeFilter={handleApplyTypeFilter} /> : null}
+              {activeTab === 'signals' ? (
+                <SignalsTab signals={data.signals} filters={filters} search={searchQuery} onSelectCompany={handleSelectCompany} />
+              ) : null}
               {activeTab === 'companies' ? (
                 <CompaniesTab
                   companies={data.companies}
@@ -336,7 +337,16 @@ export default function DashboardClient() {
                 />
               ) : null}
             </>
-          ) : null}
+          ) : analyzing ? (
+            <div className="ds-card flex items-center justify-center gap-3 px-8 py-10">
+              <span className="ds-spinner" />
+              <span className="text-sm font-medium">Analyzing companies... This may take a few minutes.</span>
+            </div>
+          ) : (
+            <div className="ds-card p-10 text-center text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>
+              No analysis data is available yet. Use Import Companies to upload a company list.
+            </div>
+          )}
         </main>
       ) : null}
     </div>

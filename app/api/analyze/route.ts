@@ -8,11 +8,14 @@ const DEFAULT_ARENA_API_KEY = 'sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra'
 export async function POST(request: Request): Promise<NextResponse> {
   const url = process.env.ANALYSIS_API_URL || DEFAULT_ANALYSIS_API_URL
   let email = ''
+  let rowId = ''
   try {
-    const body = (await request.json()) as { email?: unknown }
+    const body = (await request.json()) as { email?: unknown; id?: unknown }
     email = typeof body.email === 'string' ? body.email : ''
+    rowId = typeof body.id === 'string' ? body.id : ''
   } catch {
     email = ''
+    rowId = ''
   }
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -23,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       cache: 'no-store',
       body: JSON.stringify({
         email,
-        id: '',
+        id: rowId,
         stream: false,
         selectedOutputs: ['function1.result'],
         includeThinking: false,

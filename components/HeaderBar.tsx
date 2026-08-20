@@ -16,6 +16,7 @@ interface HeaderBarProps {
   onSearchChange: (value: string) => void
   companies: CompanyRecord[]
   onSelectCompany: (name: string) => void
+  onImportSaved: (rowId: string) => void
 }
 
 export default function HeaderBar({
@@ -28,6 +29,7 @@ export default function HeaderBar({
   onSearchChange,
   companies,
   onSelectCompany,
+  onImportSaved,
 }: HeaderBarProps) {
   const email = useArenaEmailId()
   const [focused, setFocused] = useState(false)
@@ -119,9 +121,9 @@ export default function HeaderBar({
               email={email}
               heading="Import Companies"
               description="Upload a new company list (CSV or XLSX) to replace the tracked companies. Columns such as Company Name, City, State and Country will be combined automatically."
-              onSaved={() => {
+              onSaved={(rowId) => {
                 setShowImport(false)
-                onRefresh()
+                onImportSaved(rowId)
               }}
             />
           </div>

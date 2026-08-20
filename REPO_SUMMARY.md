@@ -1,20 +1,22 @@
 # Repository Summary: abm_signal_tracker_eventgroove
 
-> Auto-maintained by Sim Development. Last updated: 2026-08-20T16:15:10.695Z.
+> Auto-maintained by Sim Development. Last updated: 2026-08-20T16:29:29.914Z.
 
 ## Overview
 
-ABM Signal Tracker — added an Import Companies CTA to the dashboard header (HeaderBar) that opens the existing upload flow in a modal, so users can import a new company list after the initial import. Changed files: components/HeaderBar.tsx (added Import Companies button + modal rendering UploadClient, wired onSaved to close the modal and trigger onRefresh which re-runs analysis via the existing /api/save-companies and /api/analyze flow); components/UploadClient.tsx (added optional heading/description props with the previous strings as defaults so the same component works both for the empty state and the import modal — no other logic touched); prisma/schema.prisma (echoed, unchanged models — returned per database rule).
+ABM Signal Tracker — Import Companies flow now extracts the saved row id from the save-companies response, forwards it through onSaved to the analysis workflow (/api/analyze now accepts and forwards the id), shows an analyzing state on the Analyze Companies button, and disables row edits while submitting.
 
 **Repository:** `abm-signal-tracker-eventgroove`  
 **File count:** 37
 
 ## Features
 
-- Import Companies CTA available from the dashboard header at any time
-- Import modal reuses the existing CSV/XLSX upload and parse flow
-- Saving imported companies calls the save-companies workflow API then re-runs analysis
-- Existing upload empty-state flow unchanged
+- Import Companies empty-state panel with drag-and-drop CSV/XLSX upload
+- Client-side parse preview table with per-row Remove before submit
+- Analyze Companies submits edited rows, then triggers analysis with the returned row id
+- Dashboard with Overview, Trends, All Signals and Companies tabs
+- Global filters, company search, CSV exports and ECharts visualizations
+- Header Import Companies action to replace the tracked list at any time
 
 ## Tech Stack
 
@@ -136,16 +138,50 @@ ABM Signal Tracker — added an Import Companies CTA to the dashboard header (He
 
 ## Latest Change
 
-- **Updated at:** 2026-08-20T16:15:10.695Z
+- **Updated at:** 2026-08-20T16:29:29.914Z
 - **Request:** Implement the following functionality in the codebase. Do not modify, refactor, remove, or "clean up" any other part of the code beyond what is explicitly listed below. Preserve existing formatting, naming conventions, comments, and logic in all unrelated sections.
 Changes to implement:
 
 
 
-1) After the Import there no option for it to import 
-Import CTA is not available...  
+1) Here's the prompt addition for this Import Companies flow:
 
-API 2 : 
+Prompt: Import Companies Screen
+
+When no companies are currently tracked (empty state), show an "Import Companies" view instead of the dashboard:
+
+Header (when in import/empty state):
+
+Replace the normal header's date/refresh info with the app title and a "No analysis loaded yet" subtitle.
+Show an "Import Companies" button in the header (opens/focuses this import view) alongside "Refresh Dashboard" (disabled/greyed out while no data exists), "Filters," and the search box.
+
+Import Companies panel:
+
+Title: "Import Companies."
+If zero companies are configured, show a message: "No companies are currently configured. Upload a company list (CSV or XLSX) to start tracking ABM signals. Columns such as Company Name, City, State, and Country will be combined automatically."
+If companies already exist and the user reopens this panel to replace them, show the same panel but with the message adjusted to: "Upload a new company list (CSV or XLSX) to replace the tracked companies..." and include a "Close" button in the header to dismiss the panel without importing.
+A drag-and-drop upload zone (dashed border) with the text "Drag and drop your company file here," "Supported formats: CSV, XLSX," and an "Upload Companies" button/label for click-to-browse.
+
+After a file is uploaded (parsed but not yet submitted):
+
+Parse the file client-side and display a preview section below the upload zone:
+A summary line: "[N] companies ready to import · [filename]" on the left, and an "Analyze Companies" button on the right.
+A table listing every parsed row with columns: #, Company Row (the combined string, e.g. "City Men Cook/Taste of South,Dallas,TX,US"), and Remove (a button per row to drop that company from the import list before submitting).
+The row string is built by joining the relevant columns (Company Name, City, State, Country) from the file with commas, matching the format the backend expects.
+Removing a row updates the count in the summary line and removes it from the list that will be submitted.
+
+On clicking "Analyze Companies":
+
+Take the current (possibly edited) list of company row strings and submit them to the upload/insert API (companyDetails field) along with the user's email.
+On success, trigger the analysis workflow using the returned row id, wait for completion, then fetch the final analyzed data and transition from the Import Companies view to the main dashboard view.
+Show a loading/processing state on the "Analyze Companies" button (and disable further edits) while the import → analysis → fetch chain runs.
+
+Behavior notes:
+
+The import panel is the default view whenever the companies list is empty; once companies exist and analysis has run, the app opens directly to the dashboard, and "Import Companies" becomes an optional action in the header to re-import/replace the list.
+No companies should be submitted for analysis without the user explicitly clicking "Analyze Companies."
+
+API  : 
 
 curl --location 'https://agent.thearena.ai/api/workflows/260c7841-b1a9-4e5d-a63a-bee55904eaac/execute' \
 --header 'X-API-Key: sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra' \
@@ -187,16 +223,7 @@ curl --location 'https://agent.thearena.ai/api/workflows/260c7841-b1a9-4e5d-a63a
 }
 
 
-API 3
-curl --location 'https://agent.thearena.ai/api/workflows/99cc0f44-94a2-4e42-8aa5-31656739d857/execute' \
---header 'X-API-Key: sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra' \
---header 'X-Sim-Stream-Protocol: agent-events-v1' \
---header 'Content-Type: application/json' \
---data-raw '{"email":"anush.ms@position2.com","id":"","stream":false,"selectedOutputs":["function1.result"],"includeThinking":false,"includeToolCalls":false}'
 
-{
-    "resposne": "Success"
-}
 
 
 Constraints:

@@ -1,30 +1,21 @@
 "use client"
 
 import ReactECharts from 'echarts-for-react'
-import type { EChartsOption } from 'echarts'
 import type { EChartClickParams } from '@/lib/types'
 
 interface EChartProps {
-  option: EChartsOption
+  option: Record<string, unknown>
   height?: number
-  onChartClick?: (params: EChartClickParams) => void
+  onClickItem?: (params: EChartClickParams) => void
 }
 
-export default function EChart({ option, height = 280, onChartClick }: EChartProps) {
-  const onEvents = onChartClick
-    ? {
-        click: (params: unknown) => {
-          onChartClick(params as EChartClickParams)
-        },
-      }
-    : undefined
-  return (
-    <ReactECharts
-      option={option}
-      notMerge
-      lazyUpdate
-      style={{ height, width: '100%' }}
-      onEvents={onEvents}
-    />
-  )
+export default function EChart({ option, height = 280, onClickItem }: EChartProps) {
+  const events: Record<string, (params: EChartClickParams) => void> = {}
+  if (onClickItem) {
+    const cb = onClickItem
+    events.click = (params: EChartClickParams) => {
+      cb(params)
+    }
+  }
+  return <ReactECharts option={option} style={{ height, width: '100%' }} notMerge onEvents={events} />
 }

@@ -100,6 +100,13 @@ export function extractDashboardContent(resp: unknown): string | null {
   return null
 }
 
+export function extractSavedRowId(resp: unknown): string {
+  const r = asObj(resp)
+  const output = asObj(r.output)
+  const row = asObj(output.row)
+  return asStr(row.id).trim()
+}
+
 export function normalizeDashboard(raw: unknown): DashboardData {
   const root = asObj(raw)
   const sum = asObj(root.summary)
