@@ -97,6 +97,9 @@ export function extractDashboardContent(resp: unknown): string | null {
     const content = output.content
     if (typeof content === 'string' && content.trim() !== '') return content
   }
+  const r = asObj(resp)
+  const directContent = asObj(r.output).content
+  if (typeof directContent === 'string' && directContent.trim() !== '') return directContent
   return null
 }
 

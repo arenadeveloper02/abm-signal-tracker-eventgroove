@@ -46,7 +46,7 @@ export default function SignalsTab({ signals, filters, search, onSelectCompany }
         <span className="text-sm" style={{ color: 'var(--ds-text-secondary)' }}>
           {filtered.length} of {signals.length} signals
         </span>
-        <button type="button" className="ds-btn ds-btn-secondary ml-auto" onClick={handleExport}>
+        <button type="button" className="ds-btn ds-btn-primary ml-auto" onClick={handleExport}>
           Export CSV
         </button>
       </div>

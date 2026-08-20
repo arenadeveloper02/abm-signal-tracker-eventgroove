@@ -65,7 +65,7 @@ export default function CompaniesTab({ companies, filters, search, onSearchChang
         <span className="text-sm" style={{ color: 'var(--ds-text-secondary)' }}>
           {filtered.length} of {companies.length} companies
         </span>
-        <button type="button" className="ds-btn ds-btn-secondary ml-auto" onClick={handleExport}>
+        <button type="button" className="ds-btn ds-btn-primary ml-auto" onClick={handleExport}>
           Export CSV
         </button>
       </div>

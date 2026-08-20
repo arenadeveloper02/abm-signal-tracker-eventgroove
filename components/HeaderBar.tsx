@@ -11,7 +11,6 @@ interface HeaderBarProps {
   refreshing: boolean
   refreshDisabled: boolean
   onRefresh: () => void
-  onToggleFilters: () => void
   searchQuery: string
   onSearchChange: (value: string) => void
   companies: CompanyRecord[]
@@ -24,7 +23,6 @@ export default function HeaderBar({
   refreshing,
   refreshDisabled,
   onRefresh,
-  onToggleFilters,
   searchQuery,
   onSearchChange,
   companies,
@@ -63,14 +61,13 @@ export default function HeaderBar({
           )}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button type="button" className="ds-btn ds-btn-secondary" onClick={() => setShowImport(true)}>
-            Import Companies
-          </button>
+          {companies.length > 0 ? (
+            <button type="button" className="ds-btn ds-btn-primary" onClick={() => setShowImport(true)}>
+              Import Companies
+            </button>
+          ) : null}
           <button type="button" className="ds-btn ds-btn-primary" onClick={onRefresh} disabled={refreshDisabled}>
             {refreshing ? 'Refreshing...' : 'Refresh Dashboard'}
-          </button>
-          <button type="button" className="ds-btn ds-btn-secondary" onClick={onToggleFilters}>
-            Filters
           </button>
           <div className="relative">
             <input

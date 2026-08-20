@@ -33,9 +33,7 @@ export default function DashboardClient() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<GlobalFilters>(EMPTY_FILTERS)
-  const [draft, setDraft] = useState<GlobalFilters>(EMPTY_FILTERS)
   const [companiesSearch, setCompaniesSearch] = useState('')
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null)
   const analysisRef = useRef(false)
@@ -97,11 +95,11 @@ export default function DashboardClient() {
           setLastUpdated(parsed.generatedAt || new Date().toISOString())
         }
       }
-      if (savedCompanies.length > 0) {
+      if (content) {
+        setPhase('dashboard')
+      } else if (savedCompanies.length > 0) {
         setPhase('dashboard')
         void runAnalysis()
-      } else if (content) {
-        setPhase('dashboard')
       } else {
         setPhase('upload')
       }
@@ -140,29 +138,11 @@ export default function DashboardClient() {
 
   const handleApplyTypeFilter = useCallback((label: string) => {
     setFilters((prev) => ({ ...prev, signalType: label }))
-    setDraft((prev) => ({ ...prev, signalType: label }))
     setActiveTab('signals')
   }, [])
 
-  const openFilters = useCallback(() => {
-    setDraft(filters)
-    setShowFilters((v) => !v)
-  }, [filters])
-
-  const applyFilters = () => {
-    setFilters(draft)
-    setShowFilters(false)
-  }
-
-  const clearFilters = () => {
-    setDraft(EMPTY_FILTERS)
-    setFilters(EMPTY_FILTERS)
-    setShowFilters(false)
-  }
-
   const removeFilter = (key: keyof GlobalFilters) => {
     setFilters((prev) => ({ ...prev, [key]: '' }))
-    setDraft((prev) => ({ ...prev, [key]: '' }))
   }
 
   const activeFilterEntries = useMemo(() => {
@@ -183,7 +163,6 @@ export default function DashboardClient() {
         refreshing={analyzing}
         refreshDisabled={analyzing || phase !== 'dashboard'}
         onRefresh={handleRefresh}
-        onToggleFilters={openFilters}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         companies={data ? data.companies : []}
@@ -204,71 +183,6 @@ export default function DashboardClient() {
 
       {phase === 'dashboard' ? (
         <main className="mx-auto max-w-[1520px] px-6 pb-16 pt-4">
-          {showFilters && data ? (
-            <div className="ds-card mb-4 p-4">
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  Severity
-                  <select className="ds-input" value={draft.severity} onChange={(e) => setDraft({ ...draft, severity: e.target.value })}>
-                    <option value="">All</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="LOW">LOW</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  Signal Type
-                  <select className="ds-input" value={draft.signalType} onChange={(e) => setDraft({ ...draft, signalType: e.target.value })}>
-                    <option value="">All</option>
-                    {data.signalAnalytics.byType.map((t) => (
-                      <option key={t.label} value={t.label}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  Industry
-                  <select className="ds-input" value={draft.industry} onChange={(e) => setDraft({ ...draft, industry: e.target.value })}>
-                    <option value="">All</option>
-                    {data.signalAnalytics.byIndustry.map((i) => (
-                      <option key={i.industry} value={i.industry}>
-                        {i.industry}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  Company
-                  <select className="ds-input" value={draft.company} onChange={(e) => setDraft({ ...draft, company: e.target.value })}>
-                    <option value="">All</option>
-                    {data.companies.map((c, idx) => (
-                      <option key={`${c.companyName}-${idx}`} value={c.companyName}>
-                        {c.companyName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  From
-                  <input type="date" className="ds-input" value={draft.dateFrom} onChange={(e) => setDraft({ ...draft, dateFrom: e.target.value })} />
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium">
-                  To
-                  <input type="date" className="ds-input" value={draft.dateTo} onChange={(e) => setDraft({ ...draft, dateTo: e.target.value })} />
-                </label>
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <button type="button" className="ds-btn ds-btn-secondary" onClick={clearFilters}>
-                  Clear Filters
-                </button>
-                <button type="button" className="ds-btn ds-btn-primary" onClick={applyFilters}>
-                  Apply
-                </button>
-              </div>
-            </div>
-          ) : null}
-
           {activeFilterEntries.length > 0 ? (
             <div className="mb-3 flex flex-wrap gap-2">
               {activeFilterEntries.map((entry) => (
@@ -289,25 +203,22 @@ export default function DashboardClient() {
           {error ? (
             <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3" style={{ background: 'var(--ds-status-error-surface)', color: 'var(--ds-status-error-text)' }}>
               <span className="text-sm font-medium">{error}</span>
-              <button
-                type="button"
-                className="ds-btn ds-btn-secondary ds-btn-sm ml-auto"
-                onClick={() => {
-                  if (data) {
-                    void runAnalysis()
-                  } else {
-                    void boot()
-                  }
-                }}
-              >
+              <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => void runAnalysis()} disabled={analyzing}>
                 Retry
               </button>
             </div>
           ) : null}
 
+          {analyzing && !data ? (
+            <div className="ds-card flex items-center justify-center gap-3 px-8 py-16">
+              <span className="ds-spinner" />
+              <span className="text-sm font-medium">Analyzing companies... this may take a moment.</span>
+            </div>
+          ) : null}
+
           {data ? (
             <>
-              <div className="mb-4 flex flex-wrap border-b" style={{ borderColor: 'var(--ds-border-default)' }}>
+              <nav className="mb-4 flex flex-wrap border-b" style={{ borderColor: 'var(--ds-border-default)' }}>
                 {TABS.map((tab) => (
                   <button
                     key={tab.key}
@@ -318,7 +229,8 @@ export default function DashboardClient() {
                     {tab.label}
                   </button>
                 ))}
-              </div>
+              </nav>
+
               {activeTab === 'overview' ? (
                 <OverviewTab data={data} onSelectCompany={handleSelectCompany} onApplyTypeFilter={handleApplyTypeFilter} />
               ) : null}
@@ -337,16 +249,13 @@ export default function DashboardClient() {
                 />
               ) : null}
             </>
-          ) : analyzing ? (
-            <div className="ds-card flex items-center justify-center gap-3 px-8 py-10">
-              <span className="ds-spinner" />
-              <span className="text-sm font-medium">Analyzing companies... This may take a few minutes.</span>
-            </div>
-          ) : (
+          ) : null}
+
+          {!data && !analyzing && !error ? (
             <div className="ds-card p-10 text-center text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>
-              No analysis data is available yet. Use Import Companies to upload a company list.
+              No dashboard data is available yet. Run an analysis to generate insights.
             </div>
-          )}
+          ) : null}
         </main>
       ) : null}
     </div>
