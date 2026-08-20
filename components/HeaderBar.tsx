@@ -53,7 +53,7 @@ export default function HeaderBar({
     <header className="sticky top-0 z-20 border-b" style={{ background: 'var(--ds-surface-page)', borderColor: 'var(--ds-border-default)' }}>
       <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-3 px-6 py-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold">ABM Signal Tracker</h1>
+          <h1 className="text-lg font-semibold">Account Signal Tracker</h1>
           {lastUpdated ? (
             <p className="text-xs" style={{ color: 'var(--ds-text-tertiary)' }}>
               Last updated: {formatDateTime(lastUpdated)} · Updated {formatRelative(lastUpdated)}
