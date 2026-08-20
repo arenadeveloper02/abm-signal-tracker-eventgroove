@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import type { CompanyRecord } from '@/lib/types'
 import { formatDateTime, formatRelative } from '@/lib/utils'
 import { useArenaEmailId } from '@/components/arena-email-provider'
-import UploadClient from '@/components/UploadClient'
+import ManageCompaniesClient from '@/components/ManageCompaniesClient'
 
 interface HeaderBarProps {
   lastUpdated: string | null
@@ -14,6 +14,7 @@ interface HeaderBarProps {
   searchQuery: string
   onSearchChange: (value: string) => void
   companies: CompanyRecord[]
+  savedCompanies: string[]
   onSelectCompany: (name: string) => void
   onImportSaved: (rowId: string) => void
 }
@@ -26,6 +27,7 @@ export default function HeaderBar({
   searchQuery,
   onSearchChange,
   companies,
+  savedCompanies,
   onSelectCompany,
   onImportSaved,
 }: HeaderBarProps) {
@@ -61,7 +63,7 @@ export default function HeaderBar({
           )}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {companies.length > 0 ? (
+          {companies.length > 0 || savedCompanies.length > 0 ? (
             <button type="button" className="ds-btn ds-btn-primary" onClick={() => setShowImport(true)}>
               Import Companies
             </button>
@@ -114,10 +116,9 @@ export default function HeaderBar({
                 Close
               </button>
             </div>
-            <UploadClient
+            <ManageCompaniesClient
               email={email}
-              heading="Import Companies"
-              description="Upload a new company list (CSV or XLSX) to replace the tracked companies. Columns such as Company Name, City, State and Country will be combined automatically."
+              savedCompanies={savedCompanies}
               onSaved={(rowId) => {
                 setShowImport(false)
                 onImportSaved(rowId)

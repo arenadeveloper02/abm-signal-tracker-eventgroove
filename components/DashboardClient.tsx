@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DashboardData, GlobalFilters } from '@/lib/types'
 import { extractCompanyList, extractDashboardContent, safeParseDashboard } from '@/lib/utils'
 import { recordActivityEvent } from '@/lib/actions'
@@ -28,6 +28,7 @@ export default function DashboardClient() {
   const email = useArenaEmailId()
   const [phase, setPhase] = useState<Phase>('boot')
   const [data, setData] = useState<DashboardData | null>(null)
+  const [savedCompanies, setSavedCompanies] = useState<string[]>([])
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +65,7 @@ export default function DashboardClient() {
         if (!res.ok) throw new Error('Analysis request failed')
         await res.json()
         const listResp = await fetchList()
+        setSavedCompanies(extractCompanyList(listResp))
         const content = extractDashboardContent(listResp)
         if (!content) throw new Error('No dashboard output was returned after analysis')
         const parsed = safeParseDashboard(content)
@@ -86,7 +88,8 @@ export default function DashboardClient() {
     setPhase('boot')
     try {
       const listResp = await fetchList()
-      const savedCompanies = extractCompanyList(listResp)
+      const list = extractCompanyList(listResp)
+      setSavedCompanies(list)
       const content = extractDashboardContent(listResp)
       if (content) {
         const parsed = safeParseDashboard(content)
@@ -97,9 +100,8 @@ export default function DashboardClient() {
       }
       if (content) {
         setPhase('dashboard')
-      } else if (savedCompanies.length > 0) {
+      } else if (list.length > 0) {
         setPhase('dashboard')
-        void runAnalysis()
       } else {
         setPhase('upload')
       }
@@ -107,7 +109,7 @@ export default function DashboardClient() {
       setError(e instanceof Error ? e.message : 'Failed to load the company list')
       setPhase('dashboard')
     }
-  }, [fetchList, runAnalysis])
+  }, [fetchList])
 
   useEffect(() => {
     if (!email || bootedRef.current) return
@@ -141,21 +143,6 @@ export default function DashboardClient() {
     setActiveTab('signals')
   }, [])
 
-  const removeFilter = (key: keyof GlobalFilters) => {
-    setFilters((prev) => ({ ...prev, [key]: '' }))
-  }
-
-  const activeFilterEntries = useMemo(() => {
-    const entries: { key: keyof GlobalFilters; label: string; value: string }[] = []
-    if (filters.severity) entries.push({ key: 'severity', label: 'Severity', value: filters.severity })
-    if (filters.signalType) entries.push({ key: 'signalType', label: 'Type', value: filters.signalType })
-    if (filters.industry) entries.push({ key: 'industry', label: 'Industry', value: filters.industry })
-    if (filters.company) entries.push({ key: 'company', label: 'Company', value: filters.company })
-    if (filters.dateFrom) entries.push({ key: 'dateFrom', label: 'From', value: filters.dateFrom })
-    if (filters.dateTo) entries.push({ key: 'dateTo', label: 'To', value: filters.dateTo })
-    return entries
-  }, [filters])
-
   return (
     <div className="min-h-screen">
       <HeaderBar
@@ -166,6 +153,7 @@ export default function DashboardClient() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         companies={data ? data.companies : []}
+        savedCompanies={savedCompanies}
         onSelectCompany={handleSelectCompany}
         onImportSaved={handleUploadSaved}
       />
@@ -183,16 +171,6 @@ export default function DashboardClient() {
 
       {phase === 'dashboard' ? (
         <main className="mx-auto max-w-[1520px] px-6 pb-16 pt-4">
-          {activeFilterEntries.length > 0 ? (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {activeFilterEntries.map((entry) => (
-                <button key={entry.key} type="button" className="ds-chip" onClick={() => removeFilter(entry.key)}>
-                  {entry.label}: {entry.value} ✕
-                </button>
-              ))}
-            </div>
-          ) : null}
-
           {analyzing && data ? (
             <div className="mb-4 flex items-center gap-3 rounded-lg px-4 py-3" style={{ background: 'var(--ds-brand-surface)', color: 'var(--ds-text-link)' }}>
               <span className="ds-spinner" />

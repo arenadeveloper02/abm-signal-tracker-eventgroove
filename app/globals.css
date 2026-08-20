@@ -46,13 +46,13 @@ body {
 }
 
 .ds-btn-secondary {
-  background: var(--ds-surface-page);
-  color: var(--ds-text-primary);
-  border-color: var(--ds-border-default);
+  background: var(--ds-interactive-default);
+  color: var(--ds-text-on-brand);
+  border-color: transparent;
 }
 
 .ds-btn-secondary:hover:not(:disabled) {
-  background: var(--ds-surface-subtle);
+  background: var(--ds-interactive-hover);
 }
 
 .ds-btn-sm {
