@@ -1,0 +1,214 @@
+@import './arena-ds-tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-primary);
+}
+
+.ds-card {
+  background: var(--ds-surface-page);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-elevation-sm);
+}
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--ds-radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: background-color 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.ds-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.ds-btn-primary {
+  background: var(--ds-interactive-default);
+  color: var(--ds-text-on-brand);
+}
+
+.ds-btn-primary:hover:not(:disabled) {
+  background: var(--ds-interactive-hover);
+}
+
+.ds-btn-secondary {
+  background: var(--ds-surface-page);
+  color: var(--ds-text-primary);
+  border-color: var(--ds-border-default);
+}
+
+.ds-btn-secondary:hover:not(:disabled) {
+  background: var(--ds-surface-subtle);
+}
+
+.ds-btn-sm {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: var(--ds-radius-sm);
+}
+
+.ds-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-page);
+  font-size: 14px;
+  color: var(--ds-text-primary);
+  outline: none;
+}
+
+.ds-input:focus {
+  border-color: var(--ds-border-focus);
+  box-shadow: 0 0 0 3px var(--ds-focus-ring);
+}
+
+.ds-input::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25px;
+  white-space: nowrap;
+}
+
+.ds-badge-high {
+  background: var(--ds-status-error-surface);
+  color: var(--ds-status-error-text);
+  border: 1px solid var(--ds-status-error-border);
+}
+
+.ds-badge-medium {
+  background: var(--ds-status-warning-surface);
+  color: var(--ds-status-warning-text);
+  border: 1px solid var(--ds-status-warning-border);
+}
+
+.ds-badge-low {
+  background: var(--ds-status-success-surface);
+  color: var(--ds-status-success-text);
+  border: 1px solid var(--ds-status-success-border);
+}
+
+.ds-badge-info {
+  background: var(--ds-status-info-surface);
+  color: var(--ds-status-info-text);
+  border: 1px solid var(--ds-status-info-border);
+}
+
+.ds-badge-neutral {
+  background: var(--ds-grey-100);
+  color: var(--ds-grey-700);
+  border: 1px solid var(--ds-grey-200);
+}
+
+.ds-tab {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ds-tab:hover {
+  color: var(--ds-text-primary);
+}
+
+.ds-tab-active {
+  color: var(--ds-text-link);
+  border-bottom-color: var(--ds-interactive-default);
+}
+
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-brand-surface);
+  color: var(--ds-text-link);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--ds-blue-100);
+  cursor: pointer;
+}
+
+.ds-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--ds-brand-surface);
+  color: var(--ds-text-link);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ds-table {
+  border-collapse: collapse;
+}
+
+.ds-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+  color: var(--ds-text-tertiary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ds-border-default);
+  background: var(--ds-surface-subtle);
+}
+
+.ds-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--ds-grey-100);
+  color: var(--ds-text-primary);
+}
+
+.ds-scroll {
+  scrollbar-width: thin;
+}
+
+.ds-spinner {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 2px solid var(--ds-border-default);
+  border-top-color: var(--ds-interactive-default);
+  border-radius: 9999px;
+  animation: ds-spin 0.8s linear infinite;
+}
+
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
