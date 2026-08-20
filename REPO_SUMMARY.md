@@ -1,20 +1,20 @@
 # Repository Summary: abm_signal_tracker_eventgroove
 
-> Auto-maintained by Sim Development. Last updated: 2026-08-20T16:02:22.384Z.
+> Auto-maintained by Sim Development. Last updated: 2026-08-20T16:15:10.695Z.
 
 ## Overview
 
-ABM Signal Tracker
+ABM Signal Tracker — added an Import Companies CTA to the dashboard header (HeaderBar) that opens the existing upload flow in a modal, so users can import a new company list after the initial import. Changed files: components/HeaderBar.tsx (added Import Companies button + modal rendering UploadClient, wired onSaved to close the modal and trigger onRefresh which re-runs analysis via the existing /api/save-companies and /api/analyze flow); components/UploadClient.tsx (added optional heading/description props with the previous strings as defaults so the same component works both for the empty state and the import modal — no other logic touched); prisma/schema.prisma (echoed, unchanged models — returned per database rule).
 
 **Repository:** `abm-signal-tracker-eventgroove`  
 **File count:** 37
 
 ## Features
 
-- Company list upload (CSV/XLSX) with parsing and save
-- ABM signal analysis dashboard with overview, trends, signals and companies tabs
-- Arena workflow API integration with built-in fallback endpoints
-- Activity event recording via Prisma
+- Import Companies CTA available from the dashboard header at any time
+- Import modal reuses the existing CSV/XLSX upload and parse flow
+- Saving imported companies calls the save-companies workflow API then re-runs analysis
+- Existing upload empty-state flow unchanged
 
 ## Tech Stack
 
@@ -136,137 +136,14 @@ ABM Signal Tracker
 
 ## Latest Change
 
-- **Updated at:** 2026-08-20T16:02:22.384Z
+- **Updated at:** 2026-08-20T16:15:10.695Z
 - **Request:** Implement the following functionality in the codebase. Do not modify, refactor, remove, or "clean up" any other part of the code beyond what is explicitly listed below. Preserve existing formatting, naming conventions, comments, and logic in all unrelated sections.
 Changes to implement:
 
 
 
-1) curl --url 'https://abm-signal-tracker-eventgroove.vercel.app/api/company-list' \
-  -H 'accept: */*' \
-  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8,kn;q=0.7' \
-  -H 'content-type: application/json' \
-  -b 'arena_email_id=anush.ms%40position2.com' \
-  -H 'origin: https://abm-signal-tracker-eventgroove.vercel.app' \
-  -H 'priority: u=1, i' \
-  -H 'referer: https://abm-signal-tracker-eventgroove.vercel.app/?emailId=anush.ms%40position2.com' \
-  -H 'sec-ch-ua: "Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "macOS"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-origin' \
-  -H 'sec-fetch-storage-access: active' \
-  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36' \
-  --data-raw '{"email":"anush.ms@position2.com"}'
-
-	1	{error: "COMPANY_LIST_API_URL is not configured"}
-	1	  error :  "COMPANY_LIST_API_URL is not configured" 
-
-Check for all the API s 
-
-curl --location 'https://agent.thearena.ai/api/workflows/0e7886e4-020e-418a-898d-997689d70488/execute' \
---header 'X-API-Key: sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra' \
---header 'Content-Type: application/json' \
---data-raw '{"email":"anush.ms@position2.com","stream":false,"selectedOutputs":["data.rows"]}'
-
-
-{
-    "success": true,
-    "executionId": "0d2995d4-6ee0-4a1c-9b81-b5fff3f5a8bd",
-    "output": {
-        "rows": [
-            {
-                "id": "row_66e8ea0f7eee449399d6e3d07510806e",
-                "data": {
-                    "created_at": "2026-08-20T13:28:33Z",
-                    "user_email": "anush.ms@position2.com",
-                    "data": {
-                        "totalCompanies": [
-                            "City Men Cook/Taste of South, Dallas, TX,US",
-                            "Stanford University,STANFORD,CA,US",
-                            "Columbia Athletic Association,Columbia,IL,US"
-                        ]
-                    },
-                    "id": "2026-08-20T13:28:33.816Z",
-                    "output": {
-                        "cost": {
-                            "input": 0.0068105,
-                            "total": 0.0140555,
-                            "output": 0.007245,
-                            "pricing": {
-                                "input": 2.5,
-                                "output": 15,
-                                "updatedAt": "2026-06-11",
-                                "cachedInput": 0.25
-                            }
-                        },
-                        "model": "gpt-5.4-mini",
-                        "tokens": {
-                            "input": 241,
-                            "total": 25556,
-                            "output": 483,
-                            "cacheRead": 24832,
-                            "cacheWrite": 0
-                        },
-                        "content": "{\"generatedAt\":\"2026-08-20T13:33:09Z\",\"summary\":{\"companiesTracked\":0,\"totalSignals\":0,\"highAlerts\":0,\"cSuiteChanges\":0,\"funding\":0,\"mergersAcquisitions\":0,\"ipo\":0,\"newsMentions\":0,\"productLaunches\":0,\"partnerships\":0,\"creativeHiring\":0,\"other\":0,\"signalsLast7Days\":0,\"companiesWithSignals\":0,\"severity\":{\"high\":0,\"medium\":0,\"low\":0}},\"trends\":{\"weekly\":[{\"weekStart\":\"2026-06-15\",\"weekEnd\":\"2026-06-21\",\"label\":\"Jun 15\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-06-22\",\"weekEnd\":\"2026-06-28\",\"label\":\"Jun 22\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-06-29\",\"weekEnd\":\"2026-07-05\",\"label\":\"Jun 29\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-06\",\"weekEnd\":\"2026-07-12\",\"label\":\"Jul 6\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-13\",\"weekEnd\":\"2026-07-19\",\"label\":\"Jul 13\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-20\",\"weekEnd\":\"2026-07-26\",\"label\":\"Jul 20\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-27\",\"weekEnd\":\"2026-08-02\",\"label\":\"Jul 27\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-08-03\",\"weekEnd\":\"2026-08-09\",\"label\":\"Aug 3\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0}]},\"signalAnalytics\":{\"byType\":[],\"byIndustry\":[],\"topCompanies\":[]},\"companies\":[],\"signals\":[]}",
-                        "toolCalls": {
-                            "list": [],
-                            "count": 0
-                        },
-                        "providerTiming": {
-                            "endTime": "2026-08-20T13:58:09.288Z",
-                            "duration": 6170,
-                            "modelTime": 6169,
-                            "startTime": "2026-08-20T13:58:03.118Z",
-                            "toolsTime": 0,
-                            "iterations": 1,
-                            "timeSegments": [
-                                {
-                                    "cost": {
-                                        "input": 0.0068105,
-                                        "total": 0.0140555,
-                                        "output": 0.007245
-                                    },
-                                    "name": "gpt-5.4-mini",
-                                    "type": "model",
-                                    "tokens": {
-                                        "input": 25073,
-                                        "total": 25556,
-                                        "output": 483,
-                                        "cacheRead": 24832
-                                    },
-                                    "endTime": 1787234289287,
-                                    "duration": 6169,
-                                    "provider": "openai",
-                                    "startTime": 1787234283118,
-                                    "finishReason": "stop",
-                                    "assistantContent": "{\"generatedAt\":\"2026-08-20T13:33:09Z\",\"summary\":{\"companiesTracked\":0,\"totalSignals\":0,\"highAlerts\":0,\"cSuiteChanges\":0,\"funding\":0,\"mergersAcquisitions\":0,\"ipo\":0,\"newsMentions\":0,\"productLaunches\":0,\"partnerships\":0,\"creativeHiring\":0,\"other\":0,\"signalsLast7Days\":0,\"companiesWithSignals\":0,\"severity\":{\"high\":0,\"medium\":0,\"low\":0}},\"trends\":{\"weekly\":[{\"weekStart\":\"2026-06-15\",\"weekEnd\":\"2026-06-21\",\"label\":\"Jun 15\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-06-22\",\"weekEnd\":\"2026-06-28\",\"label\":\"Jun 22\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-06-29\",\"weekEnd\":\"2026-07-05\",\"label\":\"Jun 29\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-06\",\"weekEnd\":\"2026-07-12\",\"label\":\"Jul 6\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-13\",\"weekEnd\":\"2026-07-19\",\"label\":\"Jul 13\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-20\",\"weekEnd\":\"2026-07-26\",\"label\":\"Jul 20\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-07-27\",\"weekEnd\":\"2026-08-02\",\"label\":\"Jul 27\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0},{\"weekStart\":\"2026-08-03\",\"weekEnd\":\"2026-08-09\",\"label\":\"Aug 3\",\"high\":0,\"medium\":0,\"low\":0,\"total\":0}]},\"signalAnalytics\":{\"byType\":[],\"byIndustry\":[],\"topCompanies\":[]},\"companies\":[],\"signals\":[]}"
-                                }
-                            ],
-                            "firstResponseTime": 6169
-                        }
-                    }
-                },
-                "executions": {},
-                "position": 0,
-                "orderKey": "a0",
-                "createdAt": "2026-08-20T13:28:35.172Z",
-                "updatedAt": "2026-08-20T13:58:11.017Z"
-            }
-        ],
-        "rowCount": 1,
-        "totalCount": 1,
-        "limit": 100,
-        "offset": 0
-    },
-    "metadata": {
-        "duration": 1270.1006829999387,
-        "startTime": "2026-08-20T13:58:26.976Z",
-        "endTime": "2026-08-20T13:58:28.247Z"
-    }
-}
-
+1) After the Import there no option for it to import 
+Import CTA is not available...  
 
 API 2 : 
 

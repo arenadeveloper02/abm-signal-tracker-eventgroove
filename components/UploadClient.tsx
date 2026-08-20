@@ -6,9 +6,16 @@ import * as XLSX from 'xlsx'
 interface UploadClientProps {
   email: string
   onSaved: () => void
+  heading?: string
+  description?: string
 }
 
-export default function UploadClient({ email, onSaved }: UploadClientProps) {
+export default function UploadClient({
+  email,
+  onSaved,
+  heading = 'No companies are currently configured',
+  description = 'Upload a company list (CSV or XLSX) to start tracking ABM signals. Columns such as Company Name, City, State and Country will be combined automatically.',
+}: UploadClientProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [fileName, setFileName] = useState('')
   const [rows, setRows] = useState<string[]>([])
@@ -92,9 +99,9 @@ export default function UploadClient({ email, onSaved }: UploadClientProps) {
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <div className="ds-card p-6">
-        <h2 className="text-xl font-semibold">No companies are currently configured</h2>
+        <h2 className="text-xl font-semibold">{heading}</h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--ds-text-secondary)' }}>
-          Upload a company list (CSV or XLSX) to start tracking ABM signals. Columns such as Company Name, City, State and Country will be combined automatically.
+          {description}
         </p>
 
         <div

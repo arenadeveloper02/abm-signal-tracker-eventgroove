@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import type { CompanyRecord } from '@/lib/types'
 import { formatDateTime, formatRelative } from '@/lib/utils'
+import { useArenaEmailId } from '@/components/arena-email-provider'
+import UploadClient from '@/components/UploadClient'
 
 interface HeaderBarProps {
   lastUpdated: string | null
@@ -27,7 +29,9 @@ export default function HeaderBar({
   companies,
   onSelectCompany,
 }: HeaderBarProps) {
+  const email = useArenaEmailId()
   const [focused, setFocused] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   const matches = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -57,6 +61,9 @@ export default function HeaderBar({
           )}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button type="button" className="ds-btn ds-btn-secondary" onClick={() => setShowImport(true)}>
+            Import Companies
+          </button>
           <button type="button" className="ds-btn ds-btn-primary" onClick={onRefresh} disabled={refreshDisabled}>
             {refreshing ? 'Refreshing...' : 'Refresh Dashboard'}
           </button>
@@ -96,6 +103,30 @@ export default function HeaderBar({
           </div>
         </div>
       </div>
+
+      {showImport ? (
+        <div
+          className="ds-scroll fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4"
+          style={{ background: 'rgba(44, 45, 51, 0.72)' }}
+        >
+          <div className="w-full max-w-4xl">
+            <div className="mt-4 flex justify-end">
+              <button type="button" className="ds-btn ds-btn-secondary ds-btn-sm" onClick={() => setShowImport(false)}>
+                Close
+              </button>
+            </div>
+            <UploadClient
+              email={email}
+              heading="Import Companies"
+              description="Upload a new company list (CSV or XLSX) to replace the tracked companies. Columns such as Company Name, City, State and Country will be combined automatically."
+              onSaved={() => {
+                setShowImport(false)
+                onRefresh()
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }
