@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+const DEFAULT_ANALYSIS_API_URL = 'https://agent.thearena.ai/api/workflows/99cc0f44-94a2-4e42-8aa5-31656739d857/execute'
+const DEFAULT_ARENA_API_KEY = 'sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra'
+
 export async function POST(request: Request): Promise<NextResponse> {
-  const url = process.env.ANALYSIS_API_URL
-  if (!url) {
-    return NextResponse.json({ error: 'ANALYSIS_API_URL is not configured' }, { status: 500 })
-  }
+  const url = process.env.ANALYSIS_API_URL || DEFAULT_ANALYSIS_API_URL
   let email = ''
   try {
     const body = (await request.json()) as { email?: unknown }
@@ -16,7 +16,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (process.env.ARENA_API_KEY) headers['X-API-Key'] = process.env.ARENA_API_KEY
+    headers['X-API-Key'] = process.env.ARENA_API_KEY || DEFAULT_ARENA_API_KEY
     const res = await fetch(url, {
       method: 'POST',
       headers,

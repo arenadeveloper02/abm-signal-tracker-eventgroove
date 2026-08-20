@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+const DEFAULT_SAVE_COMPANIES_API_URL = 'https://agent.thearena.ai/api/workflows/260c7841-b1a9-4e5d-a63a-bee55904eaac/execute'
+const DEFAULT_ARENA_API_KEY = 'sk-sim-XIrT-6iI4EYx5gI_FRRu_lGomlXF-qra'
+
 export async function POST(request: Request): Promise<NextResponse> {
-  const url = process.env.SAVE_COMPANIES_API_URL
-  if (!url) {
-    return NextResponse.json({ error: 'SAVE_COMPANIES_API_URL is not configured' }, { status: 500 })
-  }
+  const url = process.env.SAVE_COMPANIES_API_URL || DEFAULT_SAVE_COMPANIES_API_URL
   let email = ''
   let companyDetails: string[] = []
   try {
@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (process.env.ARENA_API_KEY) headers['X-API-Key'] = process.env.ARENA_API_KEY
+    headers['X-API-Key'] = process.env.ARENA_API_KEY || DEFAULT_ARENA_API_KEY
     const res = await fetch(url, {
       method: 'POST',
       headers,
