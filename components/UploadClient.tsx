@@ -2,7 +2,8 @@
 
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { extractSavedRowId } from '@/lib/utils'
+import { extractSavedRowId, MAX_IMPORT_ROWS, capImportRows, uniqueCompanyRows } from '@/lib/utils'
+import LoadingOverlay from '@/components/LoadingOverlay'
 
 interface UploadClientProps {
   email: string
@@ -62,8 +63,13 @@ export default function UploadClient({
         parsed = nonEmpty.map((r) => r.filter((c) => c !== '').join(',')).filter((v) => v !== '')
       }
       if (parsed.length === 0) throw new Error('No valid company rows were found in the file')
-      setRows(parsed)
+      const unique = uniqueCompanyRows(parsed)
+      if (unique.length === 0) throw new Error('No valid company rows were found in the file')
+      setRows(unique.slice(0, MAX_IMPORT_ROWS))
       setFileName(file.name)
+      if (unique.length > MAX_IMPORT_ROWS) {
+        setError(`Only the first ${MAX_IMPORT_ROWS} unique companies were kept. Extra rows were skipped.`)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to parse the file')
       setRows([])
@@ -86,7 +92,7 @@ export default function UploadClient({
       const res = await fetch('/api/save-companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, companyDetails: rows }),
+        body: JSON.stringify({ email, companyDetails: capImportRows(rows) }),
       })
       if (!res.ok) throw new Error('Failed to save the company list')
       const json: unknown = await res.json()
@@ -139,7 +145,14 @@ export default function UploadClient({
               if (inputRef.current) inputRef.current.click()
             }}
           >
-            {parsing ? 'Parsing...' : 'Upload Companies'}
+            {parsing ? (
+              <>
+                <span className="ds-spinner ds-spinner-sm" />
+                Parsing...
+              </>
+            ) : (
+              'Upload Companies'
+            )}
           </button>
           <input
             ref={inputRef}
@@ -164,19 +177,26 @@ export default function UploadClient({
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-medium">
-                {rows.length} companies ready to import{fileName ? ` · ${fileName}` : ''}
+                {rows.length} of {MAX_IMPORT_ROWS} companies ready to import{fileName ? ` · ${fileName}` : ''}
               </p>
               <button type="button" className="ds-btn ds-btn-primary" onClick={() => void handleSave()} disabled={saving}>
-                {saving ? 'Analyzing...' : 'Analyze Companies'}
+                {saving ? (
+                  <>
+                    <span className="ds-spinner ds-spinner-sm" />
+                    Saving...
+                  </>
+                ) : (
+                  'Analyze Companies'
+                )}
               </button>
             </div>
             <div className="ds-scroll mt-3 max-h-96 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--ds-border-default)' }}>
               <table className="ds-table w-full">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Company row</th>
-                    <th className="text-right">Remove</th>
+                    <th></th>
+                    <th>Companies</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,6 +217,8 @@ export default function UploadClient({
           </div>
         ) : null}
       </div>
+      {parsing ? <LoadingOverlay message="Parsing company file..." /> : null}
+      {saving ? <LoadingOverlay message="Saving companies..." /> : null}
     </main>
   )
 }

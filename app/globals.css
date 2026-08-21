@@ -4,6 +4,47 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ds-surface-page: var(--ds-color-surface-page);
+  --ds-surface-subtle: var(--ds-color-surface-subtle);
+  --ds-text-primary: var(--ds-color-text-primary);
+  --ds-text-secondary: var(--ds-color-text-secondary);
+  --ds-text-tertiary: var(--ds-color-text-tertiary);
+  --ds-text-on-brand: var(--ds-color-text-on-brand);
+  --ds-text-link: var(--ds-color-text-link);
+  --ds-text-placeholder: var(--ds-color-text-placeholder);
+  --ds-border-default: var(--ds-color-border-default);
+  --ds-border-focus: var(--ds-color-border-focus);
+  --ds-border-strong: var(--ds-color-border-strong);
+  --ds-focus-ring: var(--ds-color-focus-ring);
+  --ds-interactive-default: #1a73e8;
+  --ds-interactive-hover: var(--ds-color-interactive-hover);
+  --ds-interactive-selected: var(--ds-color-interactive-selected);
+  --ds-brand-surface: var(--ds-color-brand-surface);
+  --ds-status-error-surface: var(--ds-color-status-error-surface);
+  --ds-status-error-text: var(--ds-color-status-error-text);
+  --ds-status-error-border: var(--ds-color-status-error-border);
+  --ds-status-warning-surface: var(--ds-color-status-warning-surface);
+  --ds-status-warning-text: var(--ds-color-status-warning-text);
+  --ds-status-warning-border: var(--ds-color-status-warning-border);
+  --ds-status-success-surface: var(--ds-color-status-success-surface);
+  --ds-status-success-text: var(--ds-color-status-success-text);
+  --ds-status-success-border: var(--ds-color-status-success-border);
+  --ds-status-info-surface: var(--ds-color-status-info-surface);
+  --ds-status-info-text: var(--ds-color-status-info-text);
+  --ds-status-info-border: var(--ds-color-status-info-border);
+  --ds-grey-100: var(--ds-color-primitive-grey-50);
+  --ds-grey-200: var(--ds-color-primitive-grey-200);
+  --ds-grey-700: var(--ds-color-primitive-grey-700);
+  --ds-blue-100: var(--ds-color-primitive-blue-200);
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--ds-surface-subtle);
   color: var(--ds-text-primary);
@@ -37,22 +78,22 @@ body {
 }
 
 .ds-btn-primary {
-  background: var(--ds-interactive-default);
-  color: var(--ds-text-on-brand);
+  background: #1a73e8;
+  color: #ffffff;
 }
 
 .ds-btn-primary:hover:not(:disabled) {
-  background: var(--ds-interactive-hover);
+  background: #155cba;
 }
 
 .ds-btn-secondary {
-  background: var(--ds-interactive-default);
-  color: var(--ds-text-on-brand);
+  background: #1a73e8;
+  color: #ffffff;
   border-color: transparent;
 }
 
 .ds-btn-secondary:hover:not(:disabled) {
-  background: var(--ds-interactive-hover);
+  background: #155cba;
 }
 
 .ds-btn-sm {
@@ -175,6 +216,9 @@ body {
 }
 
 .ds-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   text-align: left;
   font-size: 11px;
   font-weight: 600;
@@ -205,6 +249,21 @@ body {
   border-top-color: var(--ds-interactive-default);
   border-radius: 9999px;
   animation: ds-spin 0.8s linear infinite;
+}
+
+.ds-spinner-sm {
+  width: 14px;
+  height: 14px;
+}
+
+.ds-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 @keyframes ds-spin {

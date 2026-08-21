@@ -43,6 +43,27 @@ function asStrArr(v: unknown): string[] {
     .filter((x) => x !== '')
 }
 
+export const MAX_IMPORT_ROWS = 50
+
+export function uniqueCompanyRows(values: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const value of values) {
+    const trimmed = value.trim()
+    if (!trimmed) continue
+    const name = trimmed.split(',')[0]?.trim() || trimmed
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(trimmed)
+  }
+  return out
+}
+
+export function capImportRows(values: string[]): string[] {
+  return uniqueCompanyRows(values).slice(0, MAX_IMPORT_ROWS)
+}
+
 export function sourceDomain(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
@@ -66,11 +87,27 @@ function toSource(v: unknown): SignalSource | null {
 function getRows(resp: unknown): Record<string, unknown>[] {
   const r = asObj(resp)
   const output = asObj(r.output)
-  const candidates: unknown[] = [output.rows, r.rows, asObj(r.data).rows]
+  const data = asObj(r.data)
+  const candidates: unknown[] = [output.rows, output['data.rows'], r.rows, data.rows]
   for (const c of candidates) {
     if (Array.isArray(c)) return c.map((x) => asObj(x))
   }
   return []
+}
+
+function unwrapJsonContent(raw: string): string {
+  const trimmed = raw.trim()
+  const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
+  return fence ? fence[1].trim() : trimmed
+}
+
+function contentFromUnknown(v: unknown): string | null {
+  if (typeof v === 'string' && v.trim() !== '') return unwrapJsonContent(v)
+  if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+    const o = asObj(v)
+    if ('summary' in o || 'signals' in o || 'companies' in o) return JSON.stringify(v)
+  }
+  return null
 }
 
 export function extractCompanyList(resp: unknown): string[] {
@@ -80,9 +117,9 @@ export function extractCompanyList(resp: unknown): string[] {
     const inner = asObj(data.data)
     const list = inner.totalCompanies
     if (Array.isArray(list)) {
-      const cleaned = list
-        .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-        .map((c) => c.trim())
+      const cleaned = uniqueCompanyRows(
+        list.filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+      )
       if (cleaned.length > 0) return cleaned
     }
   }
@@ -90,16 +127,22 @@ export function extractCompanyList(resp: unknown): string[] {
 }
 
 export function extractDashboardContent(resp: unknown): string | null {
+  const r = asObj(resp)
+  const output = asObj(r.output)
+  const fromOutput = contentFromUnknown(output.content)
+  if (fromOutput) return fromOutput
+  const fromRoot = contentFromUnknown(r.content)
+  if (fromRoot) return fromRoot
   const rows = getRows(resp)
   for (let i = rows.length - 1; i >= 0; i--) {
-    const data = asObj(rows[i].data)
-    const output = asObj(data.output)
-    const content = output.content
-    if (typeof content === 'string' && content.trim() !== '') return content
+    const row = rows[i]
+    const data = asObj(row.data)
+    const candidates = [asObj(row.output).content, asObj(data.output).content, data.content, row.content]
+    for (const c of candidates) {
+      const content = contentFromUnknown(c)
+      if (content) return content
+    }
   }
-  const r = asObj(resp)
-  const directContent = asObj(r.output).content
-  if (typeof directContent === 'string' && directContent.trim() !== '') return directContent
   return null
 }
 
@@ -168,7 +211,9 @@ export function normalizeDashboard(raw: unknown): DashboardData {
     }
   })
 
-  const companies: CompanyRecord[] = asArr(root.companies).map((raw2) => {
+  const companies: CompanyRecord[] = []
+  const seenCompanies = new Set<string>()
+  for (const raw2 of asArr(root.companies)) {
     const o = asObj(raw2)
     const history: SignalHistoryItem[] = asArr(o.signalHistory).map((h) => {
       const ho = asObj(h)
@@ -180,8 +225,12 @@ export function normalizeDashboard(raw: unknown): DashboardData {
         source: toSource(ho.source),
       }
     })
-    return {
-      companyName: asStr(o.companyName) || asStr(o.name),
+    const companyName = asStr(o.companyName) || asStr(o.name)
+    const key = companyName.trim().toLowerCase()
+    if (!key || seenCompanies.has(key)) continue
+    seenCompanies.add(key)
+    companies.push({
+      companyName,
       domain: asStr(o.domain),
       website: asStr(o.website),
       industry: asStr(o.industry),
@@ -194,14 +243,25 @@ export function normalizeDashboard(raw: unknown): DashboardData {
       techStack: asStrArr(o.techStack),
       keywords: asStrArr(o.keywords),
       signalHistory: history,
-    }
-  })
+    })
+  }
+
+  const uniqueTopCompanies: TopCompany[] = []
+  const seenTop = new Set<string>()
+  for (const c of topCompanies) {
+    const key = c.companyName.trim().toLowerCase()
+    if (!key || seenTop.has(key)) continue
+    seenTop.add(key)
+    uniqueTopCompanies.push(c)
+  }
+
+  summary.companiesTracked = companies.length
 
   return {
     generatedAt: asStr(root.generatedAt),
     summary,
     trends: { weekly },
-    signalAnalytics: { byType, byIndustry, topCompanies },
+    signalAnalytics: { byType, byIndustry, topCompanies: uniqueTopCompanies },
     companies,
     signals,
   }

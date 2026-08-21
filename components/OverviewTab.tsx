@@ -7,25 +7,27 @@ import SignalItem from '@/components/SignalItem'
 
 interface OverviewTabProps {
   data: DashboardData
+  companyCount?: number
   onSelectCompany: (name: string) => void
   onApplyTypeFilter: (label: string) => void
 }
 
-export default function OverviewTab({ data, onSelectCompany, onApplyTypeFilter }: OverviewTabProps) {
+export default function OverviewTab({ data, companyCount, onSelectCompany, onApplyTypeFilter }: OverviewTabProps) {
   const s = data.summary
+  const trackedCount = companyCount && companyCount > 0 ? companyCount : data.companies.length
 
   const stats = useMemo(
     () => [
-      { label: 'Companies Tracked', value: s.companiesTracked },
-      { label: 'Total Signals', value: s.totalSignals },
-      { label: 'High Alerts', value: s.highAlerts },
-      { label: 'Signals (Last 7 Days)', value: s.signalsLast7Days },
-      { label: 'Companies With Signals', value: s.companiesWithSignals },
-      { label: 'C-Suite Changes', value: s.cSuiteChanges },
-      { label: 'Funding Events', value: s.funding },
-      { label: 'Mergers & Acquisitions', value: s.mergersAcquisitions },
+      { label: 'Companies Tracked', value: trackedCount, color: '#1A73E8', surface: '#F3F8FE' },
+      { label: 'Total Signals', value: s.totalSignals, color: '#00A7D6', surface: '#F2FBFD' },
+      { label: 'High Alerts', value: s.highAlerts, color: '#F31A1A', surface: '#FFF3F3' },
+      { label: 'Signals (Last 7 Days)', value: s.signalsLast7Days, color: '#FB8145', surface: '#FFF9F5' },
+      { label: 'Companies With Signals', value: s.companiesWithSignals, color: '#B364D7', surface: '#FBF7FD' },
+      { label: 'C-Suite Changes', value: s.cSuiteChanges, color: '#F8528F', surface: '#FFF7F9' },
+      { label: 'Funding Events', value: s.funding, color: '#3BC884', surface: '#F5FCF9' },
+      { label: 'Mergers & Acquisitions', value: s.mergersAcquisitions, color: '#C96737', surface: '#FDFCF3' },
     ],
-    [s]
+    [s, trackedCount]
   )
 
   const severityOption = useMemo(
@@ -66,9 +68,13 @@ export default function OverviewTab({ data, onSelectCompany, onApplyTypeFilter }
     <div className="grid gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((st) => (
-          <div key={st.label} className="ds-card p-4">
-            <p className="text-xs font-medium" style={{ color: 'var(--ds-text-tertiary)' }}>{st.label}</p>
-            <p className="mt-1 text-2xl font-semibold">{st.value}</p>
+          <div
+            key={st.label}
+            className="ds-card overflow-hidden p-4"
+            style={{ background: st.surface, borderColor: st.color }}
+          >
+            <p className="text-xs font-medium" style={{ color: st.color }}>{st.label}</p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: st.color }}>{st.value}</p>
           </div>
         ))}
       </div>
@@ -90,18 +96,18 @@ export default function OverviewTab({ data, onSelectCompany, onApplyTypeFilter }
           {data.signalAnalytics.topCompanies.length === 0 ? (
             <p className="mt-2 text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>—</p>
           ) : (
-            <div className="mt-2">
+            <div className="mt-2 grid gap-2">
               {data.signalAnalytics.topCompanies.map((c, idx) => (
-                <button
+                <div
                   key={`${c.companyName}-${idx}`}
-                  type="button"
-                  className="flex w-full items-center justify-between border-b py-2 text-left text-sm hover:opacity-80"
+                  className="flex items-center justify-between gap-3 border-b py-2"
                   style={{ borderColor: 'var(--ds-border-default)' }}
-                  onClick={() => onSelectCompany(c.companyName)}
                 >
-                  <span className="font-medium">{c.companyName}</span>
+                  <button type="button" className="ds-btn ds-btn-sm" onClick={() => onSelectCompany(c.companyName)}>
+                    {c.companyName}
+                  </button>
                   <span className="ds-badge ds-badge-info">{c.signalCount}</span>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -111,7 +117,7 @@ export default function OverviewTab({ data, onSelectCompany, onApplyTypeFilter }
           {highSignals.length === 0 ? (
             <p className="mt-2 text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>No high severity signals.</p>
           ) : (
-            <div className="mt-2 grid gap-3">
+            <div className="mt-3 grid gap-2">
               {highSignals.map((sig) => (
                 <SignalItem key={sig.id} signal={sig} onSelectCompany={onSelectCompany} />
               ))}

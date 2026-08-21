@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { uniqueCompanyRows, MAX_IMPORT_ROWS } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,9 +14,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = (await request.json()) as { email?: unknown; companyDetails?: unknown }
     email = typeof body.email === 'string' ? body.email : ''
     if (Array.isArray(body.companyDetails)) {
-      companyDetails = body.companyDetails
-        .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-        .map((c) => c.trim())
+      companyDetails = uniqueCompanyRows(
+        body.companyDetails.filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+      ).slice(0, MAX_IMPORT_ROWS)
     }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

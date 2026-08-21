@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from 'react'
-import { extractSavedRowId } from '@/lib/utils'
+import { extractSavedRowId, MAX_IMPORT_ROWS, capImportRows } from '@/lib/utils'
+import LoadingOverlay from '@/components/LoadingOverlay'
 
 interface ManageCompaniesClientProps {
   email: string
@@ -10,7 +11,7 @@ interface ManageCompaniesClientProps {
 }
 
 export default function ManageCompaniesClient({ email, savedCompanies, onSaved }: ManageCompaniesClientProps) {
-  const [rows, setRows] = useState<string[]>(savedCompanies)
+  const [rows, setRows] = useState<string[]>(() => capImportRows(savedCompanies))
   const [newEntry, setNewEntry] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,8 +19,18 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
   const addRow = () => {
     const value = newEntry.trim()
     if (!value || saving) return
-    setRows((prev) => [...prev, value])
+    if (rows.length >= MAX_IMPORT_ROWS) {
+      setError(`You can import a maximum of ${MAX_IMPORT_ROWS} companies.`)
+      return
+    }
+    const next = capImportRows([...rows, value])
+    if (next.length === rows.length) {
+      setError('That company is already in the list.')
+      return
+    }
+    setRows(next)
     setNewEntry('')
+    setError(null)
   }
 
   const removeRow = (idx: number) => {
@@ -35,7 +46,7 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
       const res = await fetch('/api/save-companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, companyDetails: rows }),
+        body: JSON.stringify({ email, companyDetails: capImportRows(rows) }),
       })
       if (!res.ok) throw new Error('Failed to save the company list')
       const json: unknown = await res.json()
@@ -69,9 +80,9 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
                 addRow()
               }
             }}
-            disabled={saving}
+            disabled={saving || rows.length >= MAX_IMPORT_ROWS}
           />
-          <button type="button" className="ds-btn ds-btn-primary" onClick={addRow} disabled={saving || newEntry.trim() === ''}>
+          <button type="button" className="ds-btn ds-btn-primary" onClick={addRow} disabled={saving || newEntry.trim() === '' || rows.length >= MAX_IMPORT_ROWS}>
             Add Company
           </button>
         </div>
@@ -84,9 +95,16 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
 
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium">{rows.length} companies in the list</p>
+            <p className="text-sm font-medium">{rows.length} of {MAX_IMPORT_ROWS} companies in the list</p>
             <button type="button" className="ds-btn ds-btn-primary" onClick={() => void handleSave()} disabled={saving || rows.length === 0}>
-              {saving ? 'Analyzing...' : 'Save & Analyze'}
+              {saving ? (
+                <>
+                  <span className="ds-spinner ds-spinner-sm" />
+                  Saving...
+                </>
+              ) : (
+                'Save & Analyze'
+              )}
             </button>
           </div>
           {rows.length === 0 ? (
@@ -99,8 +117,8 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Company row</th>
-                    <th className="text-right">Remove</th>
+                    <th>Companies</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -121,6 +139,7 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
           )}
         </div>
       </div>
+      {saving ? <LoadingOverlay message="Saving companies..." /> : null}
     </div>
   )
 }

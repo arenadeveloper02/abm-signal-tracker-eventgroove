@@ -53,8 +53,8 @@ export default function CompaniesTab({ companies, filters, search, onSearchChang
     severity === 'HIGH' ? 'ds-badge-high' : severity === 'MEDIUM' ? 'ds-badge-medium' : 'ds-badge-low'
 
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-4 pb-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <input
           type="text"
           className="ds-input w-72"
@@ -75,7 +75,7 @@ export default function CompaniesTab({ companies, filters, search, onSearchChang
           No analyzed company records are available yet.
         </div>
       ) : (
-        <div className="ds-card overflow-x-auto">
+        <div className="ds-card ds-scroll min-h-0 flex-1 overflow-auto">
           <table className="ds-table w-full min-w-[960px]">
             <thead>
               <tr>

@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const emailId = await getArenaEmailId()
   return (
-    <html lang="en">
-      <body className={poppins.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={poppins.className} suppressHydrationWarning>
         <ArenaEmailProvider emailId={emailId}>{children}</ArenaEmailProvider>
       </body>
     </html>

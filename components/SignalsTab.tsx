@@ -8,19 +8,26 @@ import SignalItem from '@/components/SignalItem'
 interface SignalsTabProps {
   signals: SignalRecord[]
   filters: GlobalFilters
-  search: string
   onSelectCompany: (name: string) => void
 }
 
-export default function SignalsTab({ signals, filters, search, onSelectCompany }: SignalsTabProps) {
+export default function SignalsTab({ signals, filters, onSelectCompany }: SignalsTabProps) {
   const filtered = useMemo(() => {
-    const list = filterSignals(signals, filters, search)
+    const list = filterSignals(signals, filters, '')
     return list.slice().sort((a, b) => {
+      const rank = (severity: string) => {
+        const value = severity.toUpperCase()
+        if (value === 'HIGH') return 0
+        if (value === 'MEDIUM') return 1
+        return 2
+      }
+      const byPriority = rank(a.severity) - rank(b.severity)
+      if (byPriority !== 0) return byPriority
       const ta = new Date(a.date).getTime()
       const tb = new Date(b.date).getTime()
       return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta)
     })
-  }, [signals, filters, search])
+  }, [signals, filters])
 
   const handleExport = () => {
     exportCsv(
