@@ -1,22 +1,21 @@
 # Repository Summary: abm_signal_tracker_eventgroove
 
-> Auto-maintained by Sim Development. Last updated: 2026-08-20T16:57:29.811Z.
+> Auto-maintained by Sim Development. Last updated: 2026-08-21T06:16:01.308Z.
 
 ## Overview
 
-ABM Signal Tracker — edit applied: (0) all buttons now use brand blue #1A73E8 (app/globals.css .ds-btn-secondary changed to blue background/white text); (1) Import Companies button in HeaderBar stays hidden when no companies exist (now also checks savedCompanies); boot() already redirects to dashboard and parses output.content — unchanged; (2) removed the active-filters chip bar from DashboardClient (removeFilter/activeFilterEntries/useMemo removed); (3) boot() no longer auto-calls the analyze workflow on page refresh — analysis only runs on explicit user actions (Refresh button or after saving companies); (4) Import Companies modal now shows the previously imported company list with add/remove rows via new components/ManageCompaniesClient.tsx instead of the upload dropzone. prisma/schema.prisma returned per database rule (ActivityEvent model matching lib/actions.ts, additive only). Files changed: app/globals.css (ds-btn-secondary block), components/DashboardClient.tsx (savedCompanies state, boot/runAnalysis, chips removed), components/HeaderBar.tsx (savedCompanies prop, modal swapped to ManageCompaniesClient), components/ManageCompaniesClient.tsx (new), prisma/schema.prisma + lib/actions.ts + lib/types.ts (echoed).
+ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard from the company-list workflow (output.content parsed) instead of calling the analyze workflow; Import Companies modal shows previously imported companies (falls back to analyzed company names) with add/remove options only; Import Companies button remains hidden when no companies exist; all buttons already use brand blue #1A73E8 via ds-btn styles. Changed files: components/DashboardClient.tsx (added refreshDashboard callback that fetches /api/company-list and parses output.content; handleRefresh and the error Retry button now use it instead of runAnalysis — analyze API is only called after a new company import), components/HeaderBar.tsx (ManageCompaniesClient now receives savedCompanies with a fallback to companies.map(c => c.companyName) so older imported data always shows), prisma/schema.prisma (echoed, additive only — no columns removed or altered). No Filters tab existed, so nothing was removed for point 2.
 
 **Repository:** `abm-signal-tracker-eventgroove`  
 **File count:** 38
 
 ## Features
 
-- Company list upload (CSV/XLSX) with auto column detection
-- ABM signal analysis dashboard with Overview, Trends, Signals and Companies tabs
-- ECharts visualizations for severity, type, industry and weekly trends
-- CSV export for signals and companies
-- Manage previously imported companies with add/remove and re-analysis
-- Arena email gating with activity event tracking
+- Refresh Dashboard reloads saved analysis from company-list API (no analyze workflow call on refresh)
+- Import Companies modal shows previously imported companies with add-new option (no upload)
+- Import Companies hidden when there are no companies
+- Dashboard auto-loads when saved companies/output.content already exist
+- Brand blue #1A73E8 buttons via Arena DS tokens
 
 ## Tech Stack
 
@@ -140,7 +139,7 @@ ABM Signal Tracker — edit applied: (0) all buttons now use brand blue #1A73E8 
 
 ## Latest Change
 
-- **Updated at:** 2026-08-20T16:57:29.811Z
+- **Updated at:** 2026-08-21T06:16:01.308Z
 - **Request:** Implement the following functionality in the codebase. Do not modify, refactor, remove, or "clean up" any other part of the code beyond what is explicitly listed below. Preserve existing formatting, naming conventions, comments, and logic in all unrelated sections.
 Changes to implement:
 

@@ -49,6 +49,11 @@ export default function HeaderBar({
       .slice(0, 8)
   }, [companies, searchQuery])
 
+  const importList = useMemo(
+    () => (savedCompanies.length > 0 ? savedCompanies : companies.map((c) => c.companyName).filter((n) => n.trim() !== '')),
+    [savedCompanies, companies]
+  )
+
   return (
     <header className="sticky top-0 z-20 border-b" style={{ background: 'var(--ds-surface-page)', borderColor: 'var(--ds-border-default)' }}>
       <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-3 px-6 py-3">
@@ -63,7 +68,7 @@ export default function HeaderBar({
           )}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {companies.length > 0 || savedCompanies.length > 0 ? (
+          {importList.length > 0 ? (
             <button type="button" className="ds-btn ds-btn-primary" onClick={() => setShowImport(true)}>
               Import Companies
             </button>
@@ -118,7 +123,7 @@ export default function HeaderBar({
             </div>
             <ManageCompaniesClient
               email={email}
-              savedCompanies={savedCompanies}
+              savedCompanies={importList}
               onSaved={(rowId) => {
                 setShowImport(false)
                 onImportSaved(rowId)

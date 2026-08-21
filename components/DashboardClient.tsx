@@ -83,6 +83,29 @@ export default function DashboardClient() {
     [email, fetchList]
   )
 
+  const refreshDashboard = useCallback(async (): Promise<void> => {
+    if (analysisRef.current) return
+    analysisRef.current = true
+    setAnalyzing(true)
+    setError(null)
+    try {
+      const listResp = await fetchList()
+      setSavedCompanies(extractCompanyList(listResp))
+      const content = extractDashboardContent(listResp)
+      if (!content) throw new Error('No saved dashboard output was found for this account')
+      const parsed = safeParseDashboard(content)
+      if (!parsed) throw new Error('The dashboard output could not be parsed')
+      setData(parsed)
+      setLastUpdated(parsed.generatedAt || new Date().toISOString())
+      setPhase('dashboard')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to refresh the dashboard')
+    } finally {
+      setAnalyzing(false)
+      analysisRef.current = false
+    }
+  }, [fetchList])
+
   const boot = useCallback(async (): Promise<void> => {
     setError(null)
     setPhase('boot')
@@ -119,8 +142,8 @@ export default function DashboardClient() {
 
   const handleRefresh = useCallback(() => {
     void recordActivityEvent(email, 'refresh_dashboard')
-    void runAnalysis()
-  }, [email, runAnalysis])
+    void refreshDashboard()
+  }, [email, refreshDashboard])
 
   const handleUploadSaved = useCallback(
     (rowId: string) => {
@@ -181,7 +204,7 @@ export default function DashboardClient() {
           {error ? (
             <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3" style={{ background: 'var(--ds-status-error-surface)', color: 'var(--ds-status-error-text)' }}>
               <span className="text-sm font-medium">{error}</span>
-              <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => void runAnalysis()} disabled={analyzing}>
+              <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => void refreshDashboard()} disabled={analyzing}>
                 Retry
               </button>
             </div>
