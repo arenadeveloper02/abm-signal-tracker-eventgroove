@@ -72,6 +72,104 @@ export function sourceDomain(url: string): string {
   }
 }
 
+function signalTypeLabel(type: string, fallback = ''): string {
+  const t = type.trim()
+  if (!t) return fallback
+  const labels: Record<string, string> = {
+    C_SUITE_CHANGE: 'C-Suite Change',
+    FUNDING: 'Funding',
+    MERGER_ACQUISITION: 'Mergers & Acquisitions',
+    NEWS_MENTION: 'News Mention',
+    CREATIVE_HIRING: 'Creative Hiring',
+    PARTNERSHIP: 'Partnership',
+    PRODUCT_LAUNCH: 'Product Launch',
+    OTHER: 'Other',
+    IPO: 'IPO',
+  }
+  if (labels[t]) return labels[t]
+  return t.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
+}
+
+function mapSignal(raw: unknown, idx: number, fallbacks?: { companyName?: string; industry?: string; location?: string }): SignalRecord {
+  const o = asObj(raw)
+  const type = asStr(o.type) || asStr(o.lastSignalType) || asStr(o.typeLabel)
+  const location = asStr(o.location) || fallbacks?.location || ''
+  return {
+    id: asStr(o.id) || `signal-${idx}`,
+    companyName: asStr(o.companyName) || asStr(o.company) || fallbacks?.companyName || '',
+    type,
+    typeLabel: asStr(o.typeLabel) || signalTypeLabel(type),
+    title: asStr(o.title) || asStr(o.headline) || asStr(o.name),
+    summary: asStr(o.summary) || asStr(o.description) || asStr(o.details),
+    severity: (asStr(o.severity) || asStr(o.priority) || 'LOW').toUpperCase(),
+    date: asStr(o.date) || asStr(o.signalDate) || asStr(o.lastSignalDate) || asStr(o.eventDate),
+    industry: asStr(o.industry) || fallbacks?.industry || '',
+    location,
+    weekLabel: asStr(o.weekLabel),
+    source: toSource(o.source) || toSource(o.url) || toSource(o.website),
+  }
+}
+
+function signalsFromCompanies(companyRows: unknown[]): SignalRecord[] {
+  const out: SignalRecord[] = []
+  companyRows.forEach((raw, idx) => {
+    const o = asObj(raw)
+    const companyName = asStr(o.companyName) || asStr(o.name)
+    if (!companyName.trim()) return
+    const type = asStr(o.lastSignalType)
+    const date = asStr(o.lastSignalDate)
+    const label = signalTypeLabel(type)
+    const industry = asStr(o.industry)
+    const location = [asStr(o.location), asStr(o.country)].filter((p) => p !== '').join(', ')
+    const website = asStr(o.website)
+    const domain = asStr(o.domain)
+    const source = website ? { name: domain || companyName, url: website } : toSource(o.source)
+    const high = asNum(o.highSignalCount)
+    const medium = asNum(o.mediumSignalCount)
+    const low = asNum(o.lowSignalCount)
+    const total = asNum(o.signalCount) || high + medium + low
+    const add = (severity: string, count: number) => {
+      if (count <= 0) return
+      const latest = label ? ` Latest type: ${label}.` : ''
+      const when = date ? ` Most recent activity on ${date}.` : ''
+      out.push({
+        id: `${companyName}-${severity}-${idx}`,
+        companyName,
+        type,
+        typeLabel: label || severity,
+        title: count === 1 ? `1 ${severity.toLowerCase()}-priority signal` : `${count} ${severity.toLowerCase()}-priority signals`,
+        summary: `${total} signals tracked for ${companyName}.${when}${latest}`,
+        severity,
+        date,
+        industry,
+        location,
+        weekLabel: '',
+        source,
+      })
+    }
+    add('HIGH', high)
+    add('MEDIUM', medium)
+    add('LOW', low)
+    if (high + medium + low === 0 && (type || date || total > 0)) {
+      out.push({
+        id: `${companyName}-latest-${idx}`,
+        companyName,
+        type,
+        typeLabel: label || 'Other',
+        title: label ? `Latest ${label} signal` : 'Tracked account activity',
+        summary: total > 0 ? `${total} signals tracked for ${companyName}.` : 'No detailed signal records were returned for this account.',
+        severity: 'LOW',
+        date,
+        industry,
+        location,
+        weekLabel: '',
+        source,
+      })
+    }
+  })
+  return out
+}
+
 function toSource(v: unknown): SignalSource | null {
   if (typeof v === 'string' && v.trim() !== '') {
     const url = v.trim()
@@ -193,23 +291,7 @@ export function normalizeDashboard(raw: unknown): DashboardData {
     return { companyName: asStr(o.companyName) || asStr(o.name), signalCount: asNum(o.signalCount) || asNum(o.count) }
   })
 
-  const signals: SignalRecord[] = asArr(root.signals).map((raw2, idx) => {
-    const o = asObj(raw2)
-    return {
-      id: asStr(o.id) || `signal-${idx}`,
-      companyName: asStr(o.companyName) || asStr(o.company),
-      type: asStr(o.type),
-      typeLabel: asStr(o.typeLabel) || asStr(o.type),
-      title: asStr(o.title),
-      summary: asStr(o.summary),
-      severity: (asStr(o.severity) || 'LOW').toUpperCase(),
-      date: asStr(o.date) || asStr(o.signalDate),
-      industry: asStr(o.industry),
-      location: asStr(o.location),
-      weekLabel: asStr(o.weekLabel),
-      source: toSource(o.source),
-    }
-  })
+  const mappedSignals: SignalRecord[] = asArr(root.signals).map((raw2, idx) => mapSignal(raw2, idx))
 
   const companies: CompanyRecord[] = []
   const seenCompanies = new Set<string>()
@@ -217,15 +299,48 @@ export function normalizeDashboard(raw: unknown): DashboardData {
     const o = asObj(raw2)
     const history: SignalHistoryItem[] = asArr(o.signalHistory).map((h) => {
       const ho = asObj(h)
+      const histType = asStr(ho.typeLabel) || asStr(ho.type)
       return {
         severity: (asStr(ho.severity) || 'LOW').toUpperCase(),
-        typeLabel: asStr(ho.typeLabel) || asStr(ho.type),
+        typeLabel: signalTypeLabel(histType, histType),
         title: asStr(ho.title),
         date: asStr(ho.date),
         source: toSource(ho.source),
       }
     })
+    const lastType = asStr(o.lastSignalType)
+    const lastDate = asStr(o.lastSignalDate)
+    const lastLabel = signalTypeLabel(lastType)
+    const website = asStr(o.website)
+    const domain = asStr(o.domain)
     const companyName = asStr(o.companyName) || asStr(o.name)
+    const companySource = website ? { name: domain || companyName, url: website } : toSource(o.source)
+    if (history.length === 0) {
+      const buckets: Array<[string, number]> = [
+        ['HIGH', asNum(o.highSignalCount)],
+        ['MEDIUM', asNum(o.mediumSignalCount)],
+        ['LOW', asNum(o.lowSignalCount)],
+      ]
+      for (const [severity, count] of buckets) {
+        if (count <= 0) continue
+        history.push({
+          severity,
+          typeLabel: lastLabel || severity,
+          title: count === 1 ? `1 ${severity.toLowerCase()}-priority signal` : `${count} ${severity.toLowerCase()}-priority signals`,
+          date: lastDate,
+          source: companySource,
+        })
+      }
+      if (history.length === 0 && (lastType || lastDate || asNum(o.signalCount) > 0)) {
+        history.push({
+          severity: 'LOW',
+          typeLabel: lastLabel || 'Other',
+          title: lastLabel ? `Latest ${lastLabel} signal` : 'Tracked account activity',
+          date: lastDate,
+          source: companySource,
+        })
+      }
+    }
     const key = companyName.trim().toLowerCase()
     if (!key || seenCompanies.has(key)) continue
     seenCompanies.add(key)
@@ -234,17 +349,48 @@ export function normalizeDashboard(raw: unknown): DashboardData {
       domain: asStr(o.domain),
       website: asStr(o.website),
       industry: asStr(o.industry),
-      location: asStr(o.location),
+      location: [asStr(o.location), asStr(o.country)].filter((p) => p !== '').join(', '),
       employeeCount: asStr(o.employeeCount),
       revenue: asStr(o.revenue),
       fundingStage: asStr(o.fundingStage),
-      lastSignalType: asStr(o.lastSignalType),
+      lastSignalType: lastLabel || lastType,
+      lastSignalDate: lastDate,
       signalCount: asNum(o.signalCount),
       techStack: asStrArr(o.techStack),
       keywords: asStrArr(o.keywords),
       signalHistory: history,
     })
   }
+
+  const fromHistory: SignalRecord[] = []
+  companies.forEach((c, ci) => {
+    c.signalHistory.forEach((h, hi) => {
+      fromHistory.push({
+        id: `history-${ci}-${hi}`,
+        companyName: c.companyName,
+        type: h.typeLabel,
+        typeLabel: h.typeLabel,
+        title: h.title,
+        summary:
+          c.signalCount > 0
+            ? `${c.signalCount} signals tracked for ${c.companyName}.`
+            : h.title,
+        severity: h.severity,
+        date: h.date,
+        industry: c.industry,
+        location: c.location,
+        weekLabel: '',
+        source: h.source,
+      })
+    })
+  })
+
+  const signals =
+    mappedSignals.length > 0
+      ? mappedSignals
+      : fromHistory.length > 0
+        ? fromHistory
+        : signalsFromCompanies(asArr(root.companies))
 
   const uniqueTopCompanies: TopCompany[] = []
   const seenTop = new Set<string>()

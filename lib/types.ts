@@ -82,6 +82,7 @@ export interface CompanyRecord {
   revenue: string
   fundingStage: string
   lastSignalType: string
+  lastSignalDate: string
   signalCount: number
   techStack: string[]
   keywords: string[]
