@@ -177,9 +177,9 @@ export default function DashboardClient() {
       <HeaderBar
         lastUpdated={lastUpdated}
         refreshing={refreshing}
-        refreshDisabled={refreshing || analyzing || phase !== 'dashboard'}
+        refreshDisabled={refreshing || analyzing || phase !== 'dashboard' || !data}
         onRefresh={handleRefresh}
-        showImport={importList.length > 0}
+        showImport={importList.length > 0 && Boolean(data)}
         importMode={phase === 'manage'}
         onImport={() => setPhase('manage')}
         onBackToDashboard={() => setPhase('dashboard')}
@@ -283,8 +283,14 @@ export default function DashboardClient() {
           ) : null}
 
           {!data && !analyzing && !refreshing && !error ? (
-            <div className="ds-card p-10 text-center text-sm" style={{ color: 'var(--ds-text-tertiary)' }}>
-              No dashboard data is available yet. Run an analysis to generate insights.
+            <div className="ds-card mx-auto mt-10 flex max-w-xl flex-col items-center gap-3 p-10 text-center">
+              <span className="ds-spinner" />
+              <p className="text-sm font-medium" style={{ color: 'var(--ds-text-primary)' }}>
+                Analysis is running in the background.
+              </p>
+              <p className="text-sm" style={{ color: 'var(--ds-text-secondary)' }}>
+                Huge volumes of signals are being tracked, so this can take a little while. Insights will appear here as soon as the first results are ready.
+              </p>
             </div>
           ) : null}
         </main>
