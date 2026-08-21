@@ -28,6 +28,13 @@ function asStr(v: unknown): string {
   return ''
 }
 
+function asDateStr(v: unknown): string {
+  const d = asStr(v).trim()
+  if (!d) return ''
+  const parsed = new Date(d)
+  return isNaN(parsed.getTime()) ? '' : d
+}
+
 function asNum(v: unknown): number {
   if (typeof v === 'number' && isFinite(v)) return v
   if (typeof v === 'string' && v.trim() !== '') {
@@ -90,23 +97,49 @@ function signalTypeLabel(type: string, fallback = ''): string {
   return t.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
 }
 
+function signalSourceFromObject(o: Record<string, unknown>): SignalSource | null {
+  const nested = toSource(o.source)
+  if (nested?.url) return nested
+  const url = asStr(o.sourceUrl) || asStr(o.url) || asStr(o.link) || (nested?.url ?? '')
+  const name = asStr(o.sourceName) || asStr(o.source) || nested?.name || ''
+  if (!url && !name) return null
+  return { name: name || (url ? sourceDomain(url) : ''), url }
+}
+
 function mapSignal(raw: unknown, idx: number, fallbacks?: { companyName?: string; industry?: string; location?: string }): SignalRecord {
   const o = asObj(raw)
   const type = asStr(o.type) || asStr(o.lastSignalType) || asStr(o.typeLabel)
   const location = asStr(o.location) || fallbacks?.location || ''
   return {
-    id: asStr(o.id) || `signal-${idx}`,
+    id: asStr(o.id) || asStr(o.signalId) || `signal-${idx}`,
     companyName: asStr(o.companyName) || asStr(o.company) || fallbacks?.companyName || '',
     type,
     typeLabel: asStr(o.typeLabel) || signalTypeLabel(type),
     title: asStr(o.title) || asStr(o.headline) || asStr(o.name),
-    summary: asStr(o.summary) || asStr(o.description) || asStr(o.details),
+    summary: asStr(o.summary) || asStr(o.description) || asStr(o.details) || asStr(o.relativeDate),
     severity: (asStr(o.severity) || asStr(o.priority) || 'LOW').toUpperCase(),
-    date: asStr(o.date) || asStr(o.signalDate) || asStr(o.lastSignalDate) || asStr(o.eventDate),
+    date: asDateStr(o.date) || asDateStr(o.signalDate) || asDateStr(o.lastSignalDate) || asDateStr(o.eventDate),
     industry: asStr(o.industry) || fallbacks?.industry || '',
     location,
     weekLabel: asStr(o.weekLabel),
-    source: toSource(o.source) || toSource(o.url) || toSource(o.website),
+    source: signalSourceFromObject(o) || toSource(o.website),
+  }
+}
+
+function mapHistoryItem(raw: unknown): SignalHistoryItem | null {
+  const o = asObj(raw)
+  const type = asStr(o.type)
+  const typeLabel = asStr(o.typeLabel) || signalTypeLabel(type)
+  const title = asStr(o.title) || asStr(o.headline)
+  const date = asDateStr(o.date) || asDateStr(o.signalDate) || asDateStr(o.lastSignalDate)
+  if (!title && !date && !type && !typeLabel) return null
+  return {
+    severity: (asStr(o.severity) || 'LOW').toUpperCase(),
+    type,
+    typeLabel,
+    title,
+    date,
+    source: signalSourceFromObject(o),
   }
 }
 
@@ -197,6 +230,67 @@ function unwrapJsonContent(raw: string): string {
   const trimmed = raw.trim()
   const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
   return fence ? fence[1].trim() : trimmed
+}
+
+function tryParseJson(text: string): unknown | null {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+function repairTruncatedJson(input: string): string {
+  let inString = false
+  let escape = false
+  const stack: string[] = []
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (inString) {
+      if (escape) {
+        escape = false
+        continue
+      }
+      if (ch === '\\') {
+        escape = true
+        continue
+      }
+      if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+    if (ch === '{') stack.push('}')
+    else if (ch === '[') stack.push(']')
+    else if ((ch === '}' || ch === ']') && stack[stack.length - 1] === ch) stack.pop()
+  }
+
+  let out = input
+  if (escape) out = out.slice(0, -1)
+  if (inString) out += '"'
+  out = out.replace(/,\s*"(?:\\.|[^"\\])*"\s*:\s*$/, '')
+  out = out.replace(/([{,])\s*"(?:\\.|[^"\\])*"\s*$/, '$1')
+  out = out.replace(/[,:\s]+$/, '')
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i]
+  return out
+}
+
+function parseDashboardJson(content: string): unknown | null {
+  const unwrapped = unwrapJsonContent(content)
+  const attempts = [unwrapped, repairTruncatedJson(unwrapped)]
+  for (const attempt of attempts) {
+    const parsed = tryParseJson(attempt)
+    if (parsed === null) continue
+    if (typeof parsed === 'string') {
+      const nested = tryParseJson(repairTruncatedJson(unwrapJsonContent(parsed)))
+      if (nested !== null && typeof nested === 'object') return nested
+      continue
+    }
+    if (typeof parsed === 'object') return parsed
+  }
+  return null
 }
 
 function contentFromUnknown(v: unknown): string | null {
@@ -297,17 +391,9 @@ export function normalizeDashboard(raw: unknown): DashboardData {
   const seenCompanies = new Set<string>()
   for (const raw2 of asArr(root.companies)) {
     const o = asObj(raw2)
-    const history: SignalHistoryItem[] = asArr(o.signalHistory).map((h) => {
-      const ho = asObj(h)
-      const histType = asStr(ho.typeLabel) || asStr(ho.type)
-      return {
-        severity: (asStr(ho.severity) || 'LOW').toUpperCase(),
-        typeLabel: signalTypeLabel(histType, histType),
-        title: asStr(ho.title),
-        date: asStr(ho.date),
-        source: toSource(ho.source),
-      }
-    })
+    const history: SignalHistoryItem[] = asArr(o.signalHistory)
+      .map((h) => mapHistoryItem(h))
+      .filter((h): h is SignalHistoryItem => h !== null && (h.title !== '' || h.date !== ''))
     const lastType = asStr(o.lastSignalType)
     const lastDate = asStr(o.lastSignalDate)
     const lastLabel = signalTypeLabel(lastType)
@@ -325,6 +411,7 @@ export function normalizeDashboard(raw: unknown): DashboardData {
         if (count <= 0) continue
         history.push({
           severity,
+          type: lastType,
           typeLabel: lastLabel || severity,
           title: count === 1 ? `1 ${severity.toLowerCase()}-priority signal` : `${count} ${severity.toLowerCase()}-priority signals`,
           date: lastDate,
@@ -334,6 +421,7 @@ export function normalizeDashboard(raw: unknown): DashboardData {
       if (history.length === 0 && (lastType || lastDate || asNum(o.signalCount) > 0)) {
         history.push({
           severity: 'LOW',
+          type: lastType,
           typeLabel: lastLabel || 'Other',
           title: lastLabel ? `Latest ${lastLabel} signal` : 'Tracked account activity',
           date: lastDate,
@@ -368,13 +456,12 @@ export function normalizeDashboard(raw: unknown): DashboardData {
       fromHistory.push({
         id: `history-${ci}-${hi}`,
         companyName: c.companyName,
-        type: h.typeLabel,
-        typeLabel: h.typeLabel,
+        type: h.type || h.typeLabel,
+        typeLabel: h.typeLabel || signalTypeLabel(h.type),
         title: h.title,
-        summary:
-          c.signalCount > 0
-            ? `${c.signalCount} signals tracked for ${c.companyName}.`
-            : h.title,
+        summary: h.title.includes('-priority signal')
+          ? `${c.signalCount} signals tracked for ${c.companyName}.`
+          : '',
         severity: h.severity,
         date: h.date,
         industry: c.industry,
@@ -401,7 +488,7 @@ export function normalizeDashboard(raw: unknown): DashboardData {
     uniqueTopCompanies.push(c)
   }
 
-  summary.companiesTracked = companies.length
+  summary.companiesTracked = Math.max(summary.companiesTracked, companies.length)
 
   return {
     generatedAt: asStr(root.generatedAt),
@@ -414,13 +501,9 @@ export function normalizeDashboard(raw: unknown): DashboardData {
 }
 
 export function safeParseDashboard(content: string): DashboardData | null {
-  try {
-    const parsed: unknown = JSON.parse(content)
-    if (parsed === null || typeof parsed !== 'object') return null
-    return normalizeDashboard(parsed)
-  } catch {
-    return null
-  }
+  const parsed = parseDashboardJson(content)
+  if (parsed === null || typeof parsed !== 'object') return null
+  return normalizeDashboard(parsed)
 }
 
 export function formatRelative(value: string | Date): string {

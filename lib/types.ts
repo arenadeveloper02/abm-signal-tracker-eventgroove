@@ -66,6 +66,7 @@ export interface SignalRecord {
 
 export interface SignalHistoryItem {
   severity: string
+  type: string
   typeLabel: string
   title: string
   date: string
