@@ -7,7 +7,7 @@ import LoadingOverlay from '@/components/LoadingOverlay'
 
 interface UploadClientProps {
   email: string
-  onSaved: (rowId: string) => void
+  onSaved: (rowId: string, companies: string[]) => void
   heading?: string
   description?: string
 }
@@ -96,8 +96,9 @@ export default function UploadClient({
       })
       if (!res.ok) throw new Error('Failed to save the company list')
       const json: unknown = await res.json()
+      const savedRows = capImportRows(rows)
       const rowId = extractSavedRowId(json)
-      onSaved(rowId)
+      onSaved(rowId, savedRows)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save the company list')
     } finally {

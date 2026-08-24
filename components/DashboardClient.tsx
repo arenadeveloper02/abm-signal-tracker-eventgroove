@@ -10,6 +10,7 @@ import ChatFloater from '@/components/ChatFloater'
 import UploadClient from '@/components/UploadClient'
 import ManageCompaniesClient from '@/components/ManageCompaniesClient'
 import LoadingOverlay from '@/components/LoadingOverlay'
+import Toast from '@/components/Toast'
 import OverviewTab from '@/components/OverviewTab'
 import TrendsTab from '@/components/TrendsTab'
 import SignalsTab from '@/components/SignalsTab'
@@ -33,9 +34,9 @@ export default function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [savedCompanies, setSavedCompanies] = useState<string[]>([])
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
-  const [analyzing, setAnalyzing] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [filters, setFilters] = useState<GlobalFilters>(EMPTY_FILTERS)
   const [companiesSearch, setCompaniesSearch] = useState('')
@@ -73,28 +74,21 @@ export default function DashboardClient() {
     return res.json()
   }, [email])
 
-  const runAnalysis = useCallback(
+  const runBackgroundAnalysis = useCallback(
     async (rowId?: string): Promise<void> => {
       if (analysisRef.current) return
       analysisRef.current = true
-      setAnalyzing(true)
-      setError(null)
       try {
-        const res = await fetch('/api/analyze', {
+        await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, id: rowId ?? '' }),
         })
-        if (!res.ok) throw new Error('Analysis request failed')
-        await res.json()
         const listResp = await fetchList()
-        const { parsed } = applyListResponse(listResp)
-        if (!parsed) throw new Error('No dashboard output was returned after analysis')
-        setPhase('dashboard')
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Analysis failed')
+        applyListResponse(listResp)
+      } catch {
+        // Analysis continues in the background; the dashboard is refreshed when the user asks.
       } finally {
-        setAnalyzing(false)
         analysisRef.current = false
       }
     },
@@ -148,13 +142,18 @@ export default function DashboardClient() {
   }, [email, refreshDashboard])
 
   const handleUploadSaved = useCallback(
-    (rowId: string) => {
+    (rowId: string, companies: string[]) => {
       void recordActivityEvent(email, 'companies_uploaded', rowId || undefined)
+      if (companies.length > 0) setSavedCompanies(companies)
+      setError(null)
       setPhase('dashboard')
-      void runAnalysis(rowId)
+      setToast('Analysis is running in the background. The data will refresh in your dashboard.')
+      void runBackgroundAnalysis(rowId)
     },
-    [email, runAnalysis]
+    [email, runBackgroundAnalysis]
   )
+
+  const dismissToast = useCallback(() => setToast(null), [])
 
   const handleSelectCompany = useCallback((name: string) => {
     setActiveTab('companies')
@@ -178,7 +177,7 @@ export default function DashboardClient() {
       <HeaderBar
         lastUpdated={lastUpdated}
         refreshing={refreshing}
-        refreshDisabled={refreshing || analyzing || phase !== 'dashboard' || !data}
+        refreshDisabled={refreshing || phase !== 'dashboard' || !data}
         onRefresh={handleRefresh}
         showImport={importList.length > 0 && Boolean(data)}
         importMode={phase === 'manage'}
@@ -186,11 +185,9 @@ export default function DashboardClient() {
         onBackToDashboard={() => setPhase('dashboard')}
       />
 
-      {analyzing ? (
-        <LoadingOverlay message="Analyzing companies... this may take a moment. Grab a cup of coffee and relax." />
-      ) : refreshing ? (
-        <LoadingOverlay message="Refreshing dashboard..." />
-      ) : null}
+      {refreshing ? <LoadingOverlay message="Refreshing dashboard..." /> : null}
+
+      {toast ? <Toast message={toast} onClose={dismissToast} /> : null}
 
       {phase === 'boot' ? (
         <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6">
@@ -220,7 +217,7 @@ export default function DashboardClient() {
           {error ? (
             <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3 rounded-lg px-4 py-3" style={{ background: 'var(--ds-status-error-surface)', color: 'var(--ds-status-error-text)' }}>
               <span className="text-sm font-medium">{error}</span>
-              <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => void refreshDashboard()} disabled={refreshing || analyzing}>
+              <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => void refreshDashboard()} disabled={refreshing}>
                 {refreshing ? (
                   <>
                     <span className="ds-spinner ds-spinner-sm" />
@@ -283,7 +280,7 @@ export default function DashboardClient() {
             </>
           ) : null}
 
-          {!data && !analyzing && !refreshing && !error ? (
+          {!data && !refreshing && !error ? (
             <div className="ds-card mx-auto mt-10 flex max-w-xl flex-col items-center gap-3 p-10 text-center">
               <span className="ds-spinner" />
               <p className="text-sm font-medium" style={{ color: 'var(--ds-text-primary)' }}>

@@ -7,7 +7,7 @@ import LoadingOverlay from '@/components/LoadingOverlay'
 interface ManageCompaniesClientProps {
   email: string
   savedCompanies: string[]
-  onSaved: (rowId: string) => void
+  onSaved: (rowId: string, companies: string[]) => void
 }
 
 export default function ManageCompaniesClient({ email, savedCompanies, onSaved }: ManageCompaniesClientProps) {
@@ -50,8 +50,9 @@ export default function ManageCompaniesClient({ email, savedCompanies, onSaved }
       })
       if (!res.ok) throw new Error('Failed to save the company list')
       const json: unknown = await res.json()
+      const savedRows = capImportRows(rows)
       const rowId = extractSavedRowId(json)
-      onSaved(rowId)
+      onSaved(rowId, savedRows)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save the company list')
     } finally {
