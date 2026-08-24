@@ -6,6 +6,7 @@ import { extractCompanyList, extractDashboardContent, safeParseDashboard, unique
 import { recordActivityEvent } from '@/lib/actions'
 import { useArenaEmailId } from '@/components/arena-email-provider'
 import HeaderBar from '@/components/HeaderBar'
+import ChatFloater from '@/components/ChatFloater'
 import UploadClient from '@/components/UploadClient'
 import ManageCompaniesClient from '@/components/ManageCompaniesClient'
 import LoadingOverlay from '@/components/LoadingOverlay'
@@ -295,6 +296,8 @@ export default function DashboardClient() {
           ) : null}
         </main>
       ) : null}
+
+      <ChatFloater />
     </div>
   )
 }
