@@ -179,7 +179,7 @@ export default function DashboardClient() {
         refreshing={refreshing}
         refreshDisabled={refreshing || phase !== 'dashboard' || !data}
         onRefresh={handleRefresh}
-        showImport={importList.length > 0 && Boolean(data)}
+        showImport={importList.length > 0}
         importMode={phase === 'manage'}
         onImport={() => setPhase('manage')}
         onBackToDashboard={() => setPhase('dashboard')}

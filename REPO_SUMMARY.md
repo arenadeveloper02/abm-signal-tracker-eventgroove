@@ -1,21 +1,25 @@
 # Repository Summary: abm_signal_tracker_eventgroove
 
-> Auto-maintained by Sim Development. Last updated: 2026-08-21T06:16:01.308Z.
+> Auto-maintained by Sim Development. Last updated: 2026-08-24T16:37:55.285Z.
 
 ## Overview
 
-ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard from the company-list workflow (output.content parsed) instead of calling the analyze workflow; Import Companies modal shows previously imported companies (falls back to analyzed company names) with add/remove options only; Import Companies button remains hidden when no companies exist; all buttons already use brand blue #1A73E8 via ds-btn styles. Changed files: components/DashboardClient.tsx (added refreshDashboard callback that fetches /api/company-list and parses output.content; handleRefresh and the error Retry button now use it instead of runAnalysis — analyze API is only called after a new company import), components/HeaderBar.tsx (ManageCompaniesClient now receives savedCompanies with a fallback to companies.map(c => c.companyName) so older imported data always shows), prisma/schema.prisma (echoed, additive only — no columns removed or altered). No Filters tab existed, so nothing was removed for point 2.
+ABM Signal Tracker — track ABM buying signals, trends and company intelligence in one dashboard. Edit summary: (0/1) All buttons now use the brand blue #1a73e8 — the Top Companies list buttons in components/OverviewTab.tsx now include ds-btn-primary (previously unstyled ds-btn ds-btn-sm); every other button already used ds-btn-primary/ds-btn-secondary which are both #1a73e8 in globals.css. (1) 'Import Companies' in the header now shows whenever a saved company list exists (components/DashboardClient.tsx: showImport changed from `importList.length > 0 && Boolean(data)` to `importList.length > 0`) and stays hidden when there are no companies; boot() already redirects to the dashboard when the company-list workflow (0e7886e4...) returns saved companies, parsing output.content via extractDashboardContent + safeParseDashboard. (2) There is no Filters tab in the tab list (Overview/Trends/All Signals/Companies) — nothing to remove. (3) Verified refresh (handleRefresh → refreshDashboard) only calls /api/company-list, never /api/analyze; the analyze workflow (99cc0f44...) is invoked only once after companies are saved (runBackgroundAnalysis) — no code change required. (4) Clicking Import Companies already opens ManageCompaniesClient showing previously imported companies with an add-row input (no upload UI) — unchanged. prisma/schema.prisma is returned unchanged (ActivityEvent model used by lib/actions.ts recordActivityEvent). Files changed: components/OverviewTab.tsx (Top Companies buttons — added ds-btn-primary class), components/DashboardClient.tsx (HeaderBar showImport prop — one line), prisma/schema.prisma (echoed, no schema change).
 
 **Repository:** `abm-signal-tracker-eventgroove`  
-**File count:** 38
+**File count:** 47
 
 ## Features
 
-- Refresh Dashboard reloads saved analysis from company-list API (no analyze workflow call on refresh)
-- Import Companies modal shows previously imported companies with add-new option (no upload)
-- Import Companies hidden when there are no companies
-- Dashboard auto-loads when saved companies/output.content already exist
-- Brand blue #1A73E8 buttons via Arena DS tokens
+- Company list upload (CSV/XLSX) with dedupe and 50-row cap
+- Saved-company detection with automatic redirect to dashboard
+- Background ABM signal analysis via Arena workflow
+- Overview, Trends, All Signals and Companies tabs
+- ECharts severity, type, industry and weekly trend charts
+- Import Companies management (add/remove saved companies, re-analyze)
+- CSV export for signals and companies
+- Arena email gate with access-denied page
+- Chat floater assistant
 
 ## Tech Stack
 
@@ -53,19 +57,26 @@ ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard 
 ### API routes
 
 - `app/api/analyze/route.ts`
+- `app/api/chat/history/route.ts`
+- `app/api/chat/send/route.ts`
+- `app/api/chat/thread/route.ts`
 - `app/api/company-list/route.ts`
 - `app/api/save-companies/route.ts`
 
 ### Components
 
+- `components/ChatFloater.tsx`
+- `components/ChatMarkdown.tsx`
 - `components/CompaniesTab.tsx`
 - `components/DashboardClient.tsx`
 - `components/EChart.tsx`
 - `components/HeaderBar.tsx`
+- `components/LoadingOverlay.tsx`
 - `components/ManageCompaniesClient.tsx`
 - `components/OverviewTab.tsx`
 - `components/SignalItem.tsx`
 - `components/SignalsTab.tsx`
+- `components/Toast.tsx`
 - `components/TrendsTab.tsx`
 - `components/UploadClient.tsx`
 - `components/arena-email-provider.tsx`
@@ -73,8 +84,10 @@ ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard 
 ### Libraries
 
 - `lib/actions.ts`
+- `lib/arena-chat.ts`
 - `lib/arena-email-constants.ts`
 - `lib/arena-email.ts`
+- `lib/chat.ts`
 - `lib/prisma.ts`
 - `lib/types.ts`
 - `lib/utils.ts`
@@ -103,6 +116,9 @@ ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard 
 - `REPO_SUMMARY.md`
 - `app/access-denied/page.tsx`
 - `app/api/analyze/route.ts`
+- `app/api/chat/history/route.ts`
+- `app/api/chat/send/route.ts`
+- `app/api/chat/thread/route.ts`
 - `app/api/company-list/route.ts`
 - `app/api/save-companies/route.ts`
 - `app/arena-ds-tokens.css`
@@ -111,20 +127,26 @@ ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard 
 - `app/layout.tsx`
 - `app/not-found.tsx`
 - `app/page.tsx`
+- `components/ChatFloater.tsx`
+- `components/ChatMarkdown.tsx`
 - `components/CompaniesTab.tsx`
 - `components/DashboardClient.tsx`
 - `components/EChart.tsx`
 - `components/HeaderBar.tsx`
+- `components/LoadingOverlay.tsx`
 - `components/ManageCompaniesClient.tsx`
 - `components/OverviewTab.tsx`
 - `components/SignalItem.tsx`
 - `components/SignalsTab.tsx`
+- `components/Toast.tsx`
 - `components/TrendsTab.tsx`
 - `components/UploadClient.tsx`
 - `components/arena-email-provider.tsx`
 - `lib/actions.ts`
+- `lib/arena-chat.ts`
 - `lib/arena-email-constants.ts`
 - `lib/arena-email.ts`
+- `lib/chat.ts`
 - `lib/prisma.ts`
 - `lib/types.ts`
 - `lib/utils.ts`
@@ -139,7 +161,7 @@ ABM Signal Tracker — edit: Refresh Dashboard now re-reads the saved dashboard 
 
 ## Latest Change
 
-- **Updated at:** 2026-08-21T06:16:01.308Z
+- **Updated at:** 2026-08-24T16:37:55.285Z
 - **Request:** Implement the following functionality in the codebase. Do not modify, refactor, remove, or "clean up" any other part of the code beyond what is explicitly listed below. Preserve existing formatting, naming conventions, comments, and logic in all unrelated sections.
 Changes to implement:
 

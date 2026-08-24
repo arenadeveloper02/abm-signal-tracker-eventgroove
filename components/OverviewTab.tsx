@@ -103,7 +103,7 @@ export default function OverviewTab({ data, companyCount, onSelectCompany, onApp
                   className="flex items-center justify-between gap-3 border-b py-2"
                   style={{ borderColor: 'var(--ds-border-default)' }}
                 >
-                  <button type="button" className="ds-btn ds-btn-sm" onClick={() => onSelectCompany(c.companyName)}>
+                  <button type="button" className="ds-btn ds-btn-primary ds-btn-sm" onClick={() => onSelectCompany(c.companyName)}>
                     {c.companyName}
                   </button>
                   <span className="ds-badge ds-badge-info">{c.signalCount}</span>
