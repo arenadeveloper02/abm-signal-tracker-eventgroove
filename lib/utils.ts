@@ -321,15 +321,22 @@ export function extractCompanyList(resp: unknown): string[] {
 export function extractDashboardContent(resp: unknown): string | null {
   const r = asObj(resp)
   const output = asObj(r.output)
-  const fromOutput = contentFromUnknown(output.content)
+  const fromOutput = contentFromUnknown(output.content) || contentFromUnknown(output.output)
   if (fromOutput) return fromOutput
-  const fromRoot = contentFromUnknown(r.content)
+  const fromRoot = contentFromUnknown(r.content) || contentFromUnknown(r.output)
   if (fromRoot) return fromRoot
   const rows = getRows(resp)
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i]
     const data = asObj(row.data)
-    const candidates = [asObj(row.output).content, asObj(data.output).content, data.content, row.content]
+    const candidates = [
+      data.output,
+      row.output,
+      data.content,
+      row.content,
+      asObj(row.output).content,
+      asObj(data.output).content,
+    ]
     for (const c of candidates) {
       const content = contentFromUnknown(c)
       if (content) return content
