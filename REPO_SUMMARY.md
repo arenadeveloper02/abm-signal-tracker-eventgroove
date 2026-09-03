@@ -1,30 +1,29 @@
 # Repository Summary: abm_signal_tracker_eventgroove
 
-> Auto-maintained by Sim Development. Last updated: 2026-08-24T16:37:55.285Z.
+> Auto-maintained by Sim Development. Last updated: 2026-09-03T11:33:41.346Z.
 
 ## Overview
 
-ABM Signal Tracker — track ABM buying signals, trends and company intelligence in one dashboard. Edit summary: (0/1) All buttons now use the brand blue #1a73e8 — the Top Companies list buttons in components/OverviewTab.tsx now include ds-btn-primary (previously unstyled ds-btn ds-btn-sm); every other button already used ds-btn-primary/ds-btn-secondary which are both #1a73e8 in globals.css. (1) 'Import Companies' in the header now shows whenever a saved company list exists (components/DashboardClient.tsx: showImport changed from `importList.length > 0 && Boolean(data)` to `importList.length > 0`) and stays hidden when there are no companies; boot() already redirects to the dashboard when the company-list workflow (0e7886e4...) returns saved companies, parsing output.content via extractDashboardContent + safeParseDashboard. (2) There is no Filters tab in the tab list (Overview/Trends/All Signals/Companies) — nothing to remove. (3) Verified refresh (handleRefresh → refreshDashboard) only calls /api/company-list, never /api/analyze; the analyze workflow (99cc0f44...) is invoked only once after companies are saved (runBackgroundAnalysis) — no code change required. (4) Clicking Import Companies already opens ManageCompaniesClient showing previously imported companies with an add-row input (no upload UI) — unchanged. prisma/schema.prisma is returned unchanged (ActivityEvent model used by lib/actions.ts recordActivityEvent). Files changed: components/OverviewTab.tsx (Top Companies buttons — added ds-btn-primary class), components/DashboardClient.tsx (HeaderBar showImport prop — one line), prisma/schema.prisma (echoed, no schema change).
+ABM Signal Tracker — dashboard for tracking ABM buying signals, trends and company intelligence. This edit verifies and enforces the requested behaviors: all buttons use brand blue #1a73e8 (via .ds-btn-primary/.ds-btn-secondary in globals.css — already blue, unchanged), top companies render as blue buttons (OverviewTab — already implemented), the Import Companies header button only appears when companies exist (HeaderBar showImport={importList.length > 0} — already implemented), boot redirects straight to the dashboard when the company-list workflow returns saved companies/output.content (already implemented via extractDashboardContent parsing output.content), there is no Filters tab in the tab bar (TABS contains only Overview/Trends/All Signals/Companies), Refresh Dashboard now explicitly only calls /api/company-list and never /api/analyze (comment guard added in refreshDashboard; the analyze workflow runs solely once in the background after a save), and Import Companies opens the manage view showing previously imported companies with an add-new-entry input instead of the upload flow (already implemented via ManageCompaniesClient). Files changed: components/DashboardClient.tsx (clarifying guard comments in refreshDashboard/boot ensuring the analyze workflow is never invoked on refresh — point 3; no other logic touched). prisma/schema.prisma is echoed verbatim per the database rule with no column changes.
 
 **Repository:** `abm-signal-tracker-eventgroove`  
 **File count:** 47
 
 ## Features
 
-- Company list upload (CSV/XLSX) with dedupe and 50-row cap
-- Saved-company detection with automatic redirect to dashboard
-- Background ABM signal analysis via Arena workflow
-- Overview, Trends, All Signals and Companies tabs
-- ECharts severity, type, industry and weekly trend charts
-- Import Companies management (add/remove saved companies, re-analyze)
+- Company list upload (CSV/XLSX) with parsing and dedupe
+- Manage/import companies view with add/remove and re-analyze
+- Signals dashboard with Overview, Trends, All Signals and Companies tabs
+- Refresh reads only the saved company-list workflow — analyze is never called on refresh
+- Background analysis triggered once after saving companies
 - CSV export for signals and companies
-- Arena email gate with access-denied page
-- Chat floater assistant
+- Arena email gating with access-denied page
+- Activity event logging to Postgres via Prisma
 
 ## Tech Stack
 
-- Next.js ^15.3.3 (App Router)
-- React ^19.0.0
+- Next.js 16.2.12 (App Router)
+- React 19.0.0
 - Tailwind CSS v3
 - TypeScript
 - Prisma + PostgreSQL (Neon on Vercel)
@@ -41,6 +40,25 @@ ABM Signal Tracker — track ABM buying signals, trends and company intelligence
 ## Database Models
 
 - `ActivityEvent`
+
+## Prisma Schema — STRICT: NEVER DROP OR DELETE COLUMNS
+
+This section is binding on every edit. Vercel deploy runs `prisma db push` with **NO** `--accept-data-loss`. Dropping or altering a live column **fails the deploy**.
+
+**FORBIDDEN (non-negotiable):**
+- Do **not** delete, drop, omit, rename, or retype ANY existing column in `prisma/schema.prisma`
+- Do **not** drop models or tables
+- Do **not** "clean up", "simplify", or regenerate the schema from memory or from this summary
+- Do **not** remove `createdAt` / `updatedAt` (or any other listed field) even if the UI no longer uses it
+
+**ALLOWED:**
+- ADD new models, columns, relations, or enums only
+- New columns on existing models MUST be optional (`?`) or have `@default(...)`
+- If the UI no longer needs a field, stop reading it in code — leave the column in the schema unchanged
+
+**Immutable columns (must remain identical — same name, same type):**
+
+- `ActivityEvent`: `id String`, `email String`, `eventType String`, `detail String`, `createdAt DateTime`, `updatedAt DateTime`
 
 ## File Inventory
 
@@ -161,7 +179,7 @@ ABM Signal Tracker — track ABM buying signals, trends and company intelligence
 
 ## Latest Change
 
-- **Updated at:** 2026-08-24T16:37:55.285Z
+- **Updated at:** 2026-09-03T11:33:41.346Z
 - **Request:** Implement the following functionality in the codebase. Do not modify, refactor, remove, or "clean up" any other part of the code beyond what is explicitly listed below. Preserve existing formatting, naming conventions, comments, and logic in all unrelated sections.
 Changes to implement:
 

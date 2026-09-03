@@ -95,6 +95,9 @@ export default function DashboardClient() {
     [email, fetchList, applyListResponse]
   )
 
+  // Refresh ONLY reads the saved company-list workflow (/api/company-list).
+  // The analyze workflow (/api/analyze) is NEVER called from here — it runs
+  // exactly once in the background after companies are saved.
   const refreshDashboard = useCallback(async (): Promise<void> => {
     if (refreshRef.current) return
     refreshRef.current = true
@@ -113,6 +116,9 @@ export default function DashboardClient() {
     }
   }, [fetchList, applyListResponse])
 
+  // Boot also only calls /api/company-list. When companies (or a parsed
+  // output.content dashboard) already exist, it redirects straight to the
+  // dashboard; otherwise it shows the upload screen. No analyze call here.
   const boot = useCallback(async (): Promise<void> => {
     setError(null)
     setPhase('boot')
